@@ -9,13 +9,13 @@ const seed = require('./seed');
 const { signToken, requireAuth, requireAdmin, getUserFromRequest } = require('./auth');
 const { simulateCardPayment } = require('./payments');
 
-// Al primo avvio popola il database (admin, utente demo, menu) se è vuoto.
-console.log('📦 Inizializzazione database...');
+// Al primo avvio popola il database (admin, utente demo, menu).
+console.log('📦 Reset e inizializzazione database Pizzeria Vulcano...');
 try {
-  seed.run();
-  console.log('✅ Database pronto.');
+  seed.run({ force: true });
+  console.log('✅ Database resettato e popolato con successo.');
 } catch (err) {
-  console.error('❌ Errore inizializzazione database:', err);
+  console.error('❌ Errore reset database:', err);
 }
 
 const app = express();
