@@ -1,0 +1,26 @@
+# Blueprint per il deploy gratuito su Render — https://render.com
+# Come usarlo: Render -> New + -> Blueprint -> collega questo repository -> Apply.
+# Render legge questo file e configura tutto in automatico.
+services:
+  - type: web
+    name: pizzeria-bella-napoli
+    runtime: node
+    plan: free
+    region: frankfurt          # data center più vicino all'Italia
+    branch: main
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    autoDeploy: true           # ridistribuisce a ogni push su main
+    envVars:
+      # Generato in automatico da Render: ogni istanza avrà un segreto JWT
+      # robusto e unico (così non si usa quello di default presente nel codice).
+      - key: JWT_SECRET
+        generateValue: true
+      # Imposta qui una password admin a tua scelta nel dashboard di Render.
+      # Se la lasci vuota verrà usata quella di default (admin123).
+      - key: ADMIN_PASSWORD
+        sync: false
+      # Versione di Node richiesta da better-sqlite3 (binari precompilati).
+      - key: NODE_VERSION
+        value: "22.11.0"

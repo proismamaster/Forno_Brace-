@@ -115,30 +115,30 @@ app.get('/api/pizzas', (req, res) => {
 });
 
 app.post('/api/pizzas', requireAdmin, (req, res) => {
-  const { name, description, price, category, emoji, available } = req.body || {};
+  const { name, description, price, category, emoji, image, available } = req.body || {};
   if (!name || !name.trim()) return res.status(400).json({ error: 'Nome obbligatorio.' });
   const cents = Math.round(Number(price));
   if (!Number.isFinite(cents) || cents < 0) return res.status(400).json({ error: 'Prezzo non valido.' });
   const info = db.prepare(
-    `INSERT INTO pizzas (name, description, price, category, emoji, available)
-     VALUES (?, ?, ?, ?, ?, ?)`
+    `INSERT INTO pizzas (name, description, price, category, emoji, image, available)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
   ).run(name.trim(), description || '', cents, category || 'classiche', emoji || '🍕',
-        available === false ? 0 : 1);
+        image || '', available === false ? 0 : 1);
   res.status(201).json({ pizza: db.prepare('SELECT * FROM pizzas WHERE id = ?').get(info.lastInsertRowid) });
 });
 
 app.put('/api/pizzas/:id', requireAdmin, (req, res) => {
   const p = db.prepare('SELECT * FROM pizzas WHERE id = ?').get(req.params.id);
   if (!p) return res.status(404).json({ error: 'Pizza non trovata.' });
-  const { name, description, price, category, emoji, available } = req.body || {};
+  const { name, description, price, category, emoji, image, available } = req.body || {};
   const cents = price === undefined ? p.price : Math.round(Number(price));
   if (!Number.isFinite(cents) || cents < 0) return res.status(400).json({ error: 'Prezzo non valido.' });
   db.prepare(
-    `UPDATE pizzas SET name = ?, description = ?, price = ?, category = ?, emoji = ?, available = ?
+    `UPDATE pizzas SET name = ?, description = ?, price = ?, category = ?, emoji = ?, image = ?, available = ?
      WHERE id = ?`
   ).run(
     name?.trim() || p.name, description ?? p.description, cents, category || p.category,
-    emoji || p.emoji, available === undefined ? p.available : (available ? 1 : 0), p.id
+    emoji || p.emoji, image === undefined ? p.image : image, available === undefined ? p.available : (available ? 1 : 0), p.id
   );
   res.json({ pizza: db.prepare('SELECT * FROM pizzas WHERE id = ?').get(p.id) });
 });
@@ -154,13 +154,23 @@ app.delete('/api/pizzas/:id', requireAdmin, (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/orders', requireAuth, (req, res) => {
   const { items, payment_method, card, delivery, notes } = req.body || {};
+  const order_type = (req.body && req.body.order_type) || 'consegna';
 
   if (!Array.isArray(items) || items.length === 0)
     return res.status(400).json({ error: 'Il carrello è vuoto.' });
   if (!['contanti', 'carta'].includes(payment_method))
     return res.status(400).json({ error: 'Metodo di pagamento non valido.' });
-  if (!delivery || !delivery.name || !delivery.address || !delivery.phone)
-    return res.status(400).json({ error: 'Compila nome, indirizzo e telefono per la consegna.' });
+  if (!['consegna', 'asporto', 'tavolo'].includes(order_type))
+    return res.status(400).json({ error: 'Tipo di ordine non valido.' });
+  if (!delivery || !delivery.name || !delivery.name.trim())
+    return res.status(400).json({ error: 'Inserisci il tuo nome.' });
+  if (order_type === 'consegna' && (!delivery.address || !delivery.phone))
+    return res.status(400).json({ error: 'Per la consegna servono indirizzo e telefono.' });
+  if (order_type === 'asporto' && !delivery.phone)
+    return res.status(400).json({ error: 'Per l\'asporto serve un numero di telefono.' });
+  const partySize = parseInt(delivery && delivery.party_size, 10);
+  if (order_type === 'tavolo' && (!Number.isFinite(partySize) || partySize < 1))
+    return res.status(400).json({ error: 'Indica per quante persone è il tavolo.' });
 
   // Ricalcola sempre i prezzi dal database: non ci si fida del client.
   const getPizza = db.prepare('SELECT * FROM pizzas WHERE id = ?');
@@ -175,7 +185,8 @@ app.post('/api/orders', requireAuth, (req, res) => {
     lines.push({ pizza_id: pizza.id, pizza_name: pizza.name, unit_price: pizza.price, quantity: qty });
   }
 
-  const delivery_fee = computeDeliveryFee(subtotal);
+  // Il costo di consegna si applica solo agli ordini a domicilio.
+  const delivery_fee = order_type === 'consegna' ? computeDeliveryFee(subtotal) : 0;
   const total = subtotal + delivery_fee;
 
   // Gestione pagamento.
@@ -195,12 +206,16 @@ app.post('/api/orders', requireAuth, (req, res) => {
   const createOrder = db.transaction(() => {
     const info = db.prepare(
       `INSERT INTO orders
-        (user_id, status, subtotal, delivery_fee, total, payment_method, payment_status,
-         payment_ref, delivery_name, delivery_address, delivery_phone, notes)
-       VALUES (?, 'ricevuto', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        (user_id, status, order_type, subtotal, delivery_fee, total, payment_method, payment_status,
+         payment_ref, delivery_name, delivery_address, delivery_phone, scheduled_time, party_size, notes)
+       VALUES (?, 'ricevuto', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
-      req.user.id, subtotal, delivery_fee, total, payment_method, payment_status,
-      payment_ref, delivery.name.trim(), delivery.address.trim(), delivery.phone.trim(),
+      req.user.id, order_type, subtotal, delivery_fee, total, payment_method, payment_status,
+      payment_ref, delivery.name.trim(),
+      order_type === 'consegna' ? delivery.address.trim() : null,
+      (order_type === 'consegna' || order_type === 'asporto') && delivery.phone ? delivery.phone.trim() : null,
+      (delivery.scheduled_time || '').trim() || null,
+      order_type === 'tavolo' ? partySize : null,
       (notes || '').trim() || null
     );
     const orderId = info.lastInsertRowid;

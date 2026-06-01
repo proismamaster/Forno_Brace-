@@ -32,18 +32,35 @@
   </header>
 
   <main class="container">
-    <!-- ── Vista MENU ───────────────────────────────────────────────────── -->
+    <!-- ── Vista MENU (homepage pubblica) ───────────────────────────────── -->
     <section class="view" data-view="menu">
       <div class="hero">
         <div class="hero__card">
-          <h1>La vera pizza napoletana,<br />a casa tua.</h1>
-          <p>Impasto a lunga lievitazione, ingredienti freschi e forno a legna. Ordina ora e paga come preferisci.</p>
+          <h1>La vera pizza napoletana, dal 1985.</h1>
+          <p>Impasto a lunga lievitazione, ingredienti freschi e cottura nel forno a legna. Consegna a domicilio, asporto o al tavolo — paghi come preferisci.</p>
           <div class="hero__badges">
             <span>🔥 Forno a legna</span>
-            <span>🚴 Consegna a domicilio</span>
-            <span>💳 Carta o contanti</span>
+            <span>🌿 Ingredienti freschi</span>
+            <span>⭐ 4.9 su 2.000+ recensioni</span>
+          </div>
+          <div class="hero__cta">
+            <button class="btn btn--primary btn--lg" data-scroll="menuAnchor">Ordina ora</button>
+            <button class="btn btn--ghost btn--lg" data-scroll="storyAnchor" style="color:#fff;border-color:rgba(255,255,255,.45)">La nostra storia</button>
           </div>
         </div>
+      </div>
+
+      <div class="highlights">
+        <div class="highlight"><div class="hi-ico">🔥</div><strong>Forno a legna</strong><small>Cottura a 430°C in 90 secondi</small></div>
+        <div class="highlight"><div class="hi-ico">🛵</div><strong>Consegna rapida</strong><small>A domicilio in 30 minuti</small></div>
+        <div class="highlight"><div class="hi-ico">🥡</div><strong>Asporto & tavolo</strong><small>Ritiri tu o mangi da noi</small></div>
+        <div class="highlight"><div class="hi-ico">💳</div><strong>Pagamento facile</strong><small>Carta o contanti</small></div>
+      </div>
+
+      <div class="section-head" id="menuAnchor">
+        <span class="kicker">Il forno a legna</span>
+        <h2>Il nostro menu</h2>
+        <p>18 pizze preparate al momento. Sfoglia liberamente: per ordinare basta creare un account in pochi secondi.</p>
       </div>
 
       <div class="toolbar">
@@ -54,6 +71,40 @@
       </div>
 
       <div class="grid" id="pizzaGrid"></div>
+
+      <!-- Storia / pizzaioli -->
+      <div class="section-head" id="storyAnchor">
+        <span class="kicker">Chi siamo</span>
+        <h2>Tre generazioni di pizzaioli</h2>
+      </div>
+      <div class="story">
+        <div class="story__text">
+          <p>Tutto è iniziato nel 1985, quando nonno Antonio aprì un piccolo forno nel cuore di Napoli. Da allora impastiamo a mano, ogni giorno, con la stessa pasta madre e lo stesso forno a legna.</p>
+          <p>I nostri pizzaioli selezionano il pomodoro San Marzano, la mozzarella di bufala campana e il basilico fresco. Niente scorciatoie: solo passione e materie prime vere.</p>
+          <p class="story__sign">— La famiglia Esposito</p>
+        </div>
+        <div class="story__media">
+          <img class="ph-main" src="/images/pizzaiolo.jpg" alt="Il nostro pizzaiolo al lavoro" loading="lazy" />
+          <img class="ph-float" src="/images/forno.jpg" alt="Il forno a legna" loading="lazy" />
+        </div>
+      </div>
+
+      <div class="gallery">
+        <figure><img src="/images/forno.jpg" alt="Forno a legna" loading="lazy" /><figcaption>🔥 Il forno a legna</figcaption></figure>
+        <figure><img src="/images/pizza-hot.jpg" alt="Pizza appena sfornata" loading="lazy" /><figcaption>🍕 Appena sfornata</figcaption></figure>
+        <figure><img src="/images/sala.jpg" alt="La nostra sala" loading="lazy" /><figcaption>🍽️ La nostra sala</figcaption></figure>
+      </div>
+
+      <!-- Come funziona -->
+      <div class="section-head">
+        <span class="kicker">Semplice e veloce</span>
+        <h2>Come funziona</h2>
+      </div>
+      <div class="steps">
+        <div class="step"><div class="step__num">1</div><h3>Scegli le pizze</h3><p>Aggiungi al carrello le tue preferite dal menu.</p></div>
+        <div class="step"><div class="step__num">2</div><h3>Consegna, asporto o tavolo</h3><p>Decidi se riceverle a casa, ritirarle o mangiare da noi.</p></div>
+        <div class="step"><div class="step__num">3</div><h3>Paga e gusta</h3><p>Carta o contanti. Pensiamo a tutto noi!</p></div>
+      </div>
     </section>
 
     <!-- ── Vista CHECKOUT ───────────────────────────────────────────────── -->
@@ -61,21 +112,42 @@
       <div class="view__head"><h2>Completa l'ordine</h2></div>
       <div class="cols">
         <div class="panel">
-          <h3 style="margin-bottom:1rem">Dati di consegna</h3>
+          <h3 style="margin-bottom:1rem">Come vuoi l'ordine?</h3>
+          <div class="order-types" id="orderTypes">
+            <div class="order-type is-active" data-type="consegna">
+              <div class="ot-ico">🛵</div><strong>Consegna</strong><small>A domicilio</small>
+            </div>
+            <div class="order-type" data-type="asporto">
+              <div class="ot-ico">🥡</div><strong>Asporto</strong><small>Ritiri tu</small>
+            </div>
+            <div class="order-type" data-type="tavolo">
+              <div class="ot-ico">🍽️</div><strong>Al tavolo</strong><small>Mangi da noi</small>
+            </div>
+          </div>
+
+          <h3 style="margin:0 0 1rem">I tuoi dati</h3>
           <div class="field">
             <label for="dName">Nome e cognome</label>
             <input id="dName" type="text" placeholder="Mario Rossi" />
           </div>
-          <div class="field">
+          <div class="field" data-for="consegna">
             <label for="dAddr">Indirizzo di consegna</label>
             <input id="dAddr" type="text" placeholder="Via Roma 12, Napoli" />
           </div>
-          <div class="field">
+          <div class="field" data-for="consegna asporto">
             <label for="dPhone">Telefono</label>
             <input id="dPhone" type="tel" placeholder="333 1234567" />
           </div>
+          <div class="field" data-for="asporto tavolo">
+            <label for="dTime" id="dTimeLabel">Orario di ritiro</label>
+            <input id="dTime" type="time" />
+          </div>
+          <div class="field" data-for="tavolo">
+            <label for="dParty">Numero di persone</label>
+            <input id="dParty" type="number" min="1" max="20" placeholder="2" />
+          </div>
           <div class="field">
-            <label for="dNotes">Note (citofono, scala, allergie…)</label>
+            <label for="dNotes">Note (citofono, allergie, richieste…)</label>
             <textarea id="dNotes" placeholder="Es. Citofono Rossi, secondo piano"></textarea>
           </div>
 

@@ -29,6 +29,7 @@ db.exec(`
     price       INTEGER NOT NULL,                    -- prezzo in centesimi
     category    TEXT    NOT NULL DEFAULT 'classiche',
     emoji       TEXT    NOT NULL DEFAULT '🍕',
+    image       TEXT    NOT NULL DEFAULT '',         -- nome file foto in /images
     available   INTEGER NOT NULL DEFAULT 1,          -- 0/1
     created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
   );
@@ -37,15 +38,18 @@ db.exec(`
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id          INTEGER NOT NULL,
     status           TEXT    NOT NULL DEFAULT 'ricevuto',   -- ricevuto|in_preparazione|in_consegna|consegnato|annullato
+    order_type       TEXT    NOT NULL DEFAULT 'consegna',   -- 'consegna' | 'asporto' | 'tavolo'
     subtotal         INTEGER NOT NULL,                       -- centesimi
     delivery_fee     INTEGER NOT NULL DEFAULT 0,             -- centesimi
     total            INTEGER NOT NULL,                       -- centesimi
     payment_method   TEXT    NOT NULL,                       -- 'contanti' | 'carta'
     payment_status   TEXT    NOT NULL DEFAULT 'in_attesa',   -- in_attesa | pagato | fallito
     payment_ref      TEXT,                                   -- riferimento pagamento simulato (es. ch_xxx)
-    delivery_name    TEXT    NOT NULL,
-    delivery_address TEXT    NOT NULL,
-    delivery_phone   TEXT    NOT NULL,
+    delivery_name    TEXT    NOT NULL,                        -- nome di chi ordina/ritira
+    delivery_address TEXT,                                   -- solo per consegna a domicilio
+    delivery_phone   TEXT,                                   -- consegna/asporto
+    scheduled_time   TEXT,                                   -- orario richiesto (asporto/tavolo)
+    party_size       INTEGER,                                -- numero coperti (solo tavolo)
     notes            TEXT,
     created_at       TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at       TEXT    NOT NULL DEFAULT (datetime('now')),

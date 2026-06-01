@@ -23,5 +23,8 @@
     "better-sqlite3": "^11.8.1",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

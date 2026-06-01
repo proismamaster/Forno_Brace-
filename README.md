@@ -40,6 +40,30 @@ Puoi anche **registrare** un nuovo cliente dal sito.
 
 ---
 
+## 🌐 Pubblicare online (Render)
+
+Il sito è pronto per essere pubblicato **gratis** su **[Render](https://render.com)**,
+che esegue Node.js e il database (a differenza di GitHub Pages, che ospita solo file statici).
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/proismamaster/pizzeriaTesting)
+
+**Passaggi:**
+
+1. Clicca il pulsante qui sopra (oppure su Render: **New +** → **Blueprint**).
+2. Accedi con **GitHub** e autorizza Render ad accedere al repository.
+3. Render legge il file [`render.yaml`](render.yaml) e configura tutto da solo:
+   build (`npm install`), avvio (`npm start`) e un `JWT_SECRET` generato in automatico.
+4. *(Consigliato)* Imposta la variabile **`ADMIN_PASSWORD`** con una password a tua
+   scelta. Se la lasci vuota viene usata quella di default (`admin123`).
+5. Clicca **Apply** e attendi qualche minuto: otterrai un link pubblico, tipo
+   `https://pizzeria-bella-napoli.onrender.com`.
+
+> ℹ️ **Piano gratuito:** il servizio va in pausa dopo ~15 minuti di inattività e
+> si riattiva al primo accesso (qualche secondo). Il database SQLite è temporaneo
+> e si ripopola da solo (menu, admin, demo) a ogni riavvio — perfetto per una demo.
+
+---
+
 ## 💳 Come provare il pagamento con carta
 
 Nel checkout scegli **"Carta di credito"** e usa una di queste carte di test

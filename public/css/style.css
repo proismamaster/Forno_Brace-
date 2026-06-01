@@ -103,19 +103,37 @@ img { max-width: 100%; display: block; }
 .hamburger { display: none; background: none; border: 0; font-size: 1.5rem; cursor: pointer; color: var(--ink); }
 
 /* ── Hero ─────────────────────────────────────────────────────────────────── */
-.hero { padding: 2.4rem 0 1.2rem; }
+.hero { padding: 2rem 0 1rem; }
 .hero__card {
-  background: linear-gradient(120deg, var(--tomato), #b81e1e 60%, #8f1616);
-  color: #fff; border-radius: 26px; padding: 2.6rem 2rem; position: relative; overflow: hidden;
+  color: #fff; border-radius: 26px; padding: 3.4rem 2.2rem; position: relative; overflow: hidden;
   box-shadow: var(--shadow);
+  background-image:
+    linear-gradient(105deg, rgba(30,15,8,.86) 0%, rgba(40,18,10,.62) 45%, rgba(40,18,10,.25) 100%),
+    url('/images/forno.jpg');
+  background-size: cover; background-position: center;
+  min-height: 360px; display: flex; flex-direction: column; justify-content: center;
 }
-.hero__card::after { content: '🍕'; position: absolute; right: -10px; bottom: -28px;
-  font-size: 11rem; opacity: .14; transform: rotate(-12deg); }
-.hero__card h1 { font-size: clamp(1.9rem, 4.5vw, 3rem); margin-bottom: .4rem; }
-.hero__card p { max-width: 34ch; opacity: .92; }
-.hero__badges { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.2rem; }
-.hero__badges span { background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.25);
-  padding: .35em .9em; border-radius: 999px; font-size: .82rem; backdrop-filter: blur(4px); }
+.hero__card h1 { font-size: clamp(2rem, 4.8vw, 3.2rem); margin-bottom: .5rem; max-width: 18ch; }
+.hero__card p { max-width: 40ch; opacity: .94; font-size: 1.05rem; }
+.hero__badges { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.4rem; }
+.hero__badges span { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.28);
+  padding: .4em 1em; border-radius: 999px; font-size: .85rem; backdrop-filter: blur(4px); }
+.hero__cta { display: flex; gap: .7rem; flex-wrap: wrap; margin-top: 1.6rem; }
+
+/* ── Striscia punti di forza ──────────────────────────────────────────────── */
+.highlights { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 1.4rem 0 .5rem; }
+.highlight { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1rem 1.1rem; box-shadow: var(--shadow-sm); }
+.highlight .hi-ico { font-size: 1.6rem; }
+.highlight strong { display: block; margin-top: .3rem; }
+.highlight small { color: var(--ink-soft); }
+
+/* ── Intestazioni di sezione ──────────────────────────────────────────────── */
+.section-head { margin: 2.6rem 0 1rem; text-align: center; }
+.section-head .kicker { color: var(--tomato); font-weight: 700; font-size: .8rem;
+  letter-spacing: .18em; text-transform: uppercase; }
+.section-head h2 { font-size: clamp(1.6rem, 3.5vw, 2.3rem); margin-top: .2rem; }
+.section-head p { color: var(--ink-soft); max-width: 52ch; margin: .5rem auto 0; }
 
 /* ── Filtri categoria ─────────────────────────────────────────────────────── */
 .toolbar { display: flex; flex-wrap: wrap; gap: .8rem; align-items: center;
@@ -137,22 +155,30 @@ img { max-width: 100%; display: block; }
 .search::before { content: '🔎'; position: absolute; left: .9em; top: 50%; transform: translateY(-50%); opacity: .6; }
 
 /* ── Griglia pizze ────────────────────────────────────────────────────────── */
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.1rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.3rem; }
 .pizza-card {
   background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);
-  padding: 1.1rem; display: flex; flex-direction: column; gap: .5rem; box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; box-shadow: var(--shadow-sm); overflow: hidden;
   transition: transform .15s ease, box-shadow .2s ease; position: relative;
 }
-.pizza-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
-.pizza-card__emoji { font-size: 3.1rem; line-height: 1; align-self: flex-start;
-  background: var(--cream); border-radius: 14px; padding: .35rem .55rem; }
-.pizza-card__cat { position: absolute; top: 1rem; right: 1rem; font-size: .68rem;
-  text-transform: uppercase; letter-spacing: .08em; color: var(--basil); font-weight: 700; }
-.pizza-card h3 { font-size: 1.18rem; }
-.pizza-card__desc { color: var(--ink-soft); font-size: .86rem; flex: 1; }
-.pizza-card__foot { display: flex; align-items: center; justify-content: space-between; margin-top: .4rem; }
+.pizza-card:hover { transform: translateY(-5px); box-shadow: var(--shadow); }
+.pizza-card__media { position: relative; aspect-ratio: 4 / 3; overflow: hidden;
+  background: linear-gradient(135deg, #f4e3c8, #e9c79a); display: grid; place-items: center; }
+.pizza-card__media .media-emoji { font-size: 3.4rem; }
+.pizza-card__media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  transition: transform .4s ease; }
+.pizza-card:hover .pizza-card__media img { transform: scale(1.06); }
+.pizza-card__cat { position: absolute; top: .7rem; left: .7rem; z-index: 2; font-size: .66rem;
+  text-transform: uppercase; letter-spacing: .06em; color: #fff; font-weight: 700;
+  background: rgba(20,12,6,.6); padding: .25em .7em; border-radius: 999px; backdrop-filter: blur(3px); }
+.pizza-card__body { padding: 1rem 1.1rem 1.1rem; display: flex; flex-direction: column; gap: .35rem; flex: 1; }
+.pizza-card__body h3 { font-size: 1.16rem; }
+.pizza-card__desc { color: var(--ink-soft); font-size: .85rem; flex: 1; }
+.pizza-card__foot { display: flex; align-items: center; justify-content: space-between; margin-top: .5rem; gap: .5rem; }
 .price { font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.3rem; color: var(--tomato); }
-.pizza-card.is-unavailable { opacity: .55; }
+.pizza-card.is-unavailable img { filter: grayscale(.7); opacity: .6; }
+.sold-out { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center;
+  background: rgba(20,12,6,.45); color: #fff; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
 
 /* ── Stepper quantità ─────────────────────────────────────────────────────── */
 .stepper { display: inline-flex; align-items: center; gap: .2rem; background: var(--cream);
@@ -354,7 +380,59 @@ img { max-width: 100%; display: block; }
   .mobile-nav button .mi { font-size: 1.25rem; }
   .mobile-nav button.is-active { color: var(--tomato); font-weight: 600; }
   .view { padding-bottom: 5.5rem; }
+
+  .highlights { grid-template-columns: 1fr 1fr; }
+  .story { grid-template-columns: 1fr; padding: 1.4rem; gap: 1.2rem; }
+  .story__media { min-height: 240px; }
+  .story__media .ph-main { width: 100%; height: 220px; }
+  .story__media .ph-float { display: none; }
+  .gallery { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: 1fr; gap: .6rem; }
+  .order-types { grid-template-columns: 1fr; }
+  .hero__card { padding: 2rem 1.3rem; min-height: 300px; }
 }
+
+/* ── Sezione storia / pizzaioli ───────────────────────────────────────────── */
+.story { display: grid; grid-template-columns: 1.1fr 1fr; gap: 2rem; align-items: center;
+  background: var(--paper); border: 1px solid var(--line); border-radius: 26px; padding: 2.2rem;
+  box-shadow: var(--shadow-sm); margin-top: 1rem; overflow: hidden; }
+.story__text h2 { font-size: clamp(1.7rem, 3.5vw, 2.4rem); margin-bottom: .8rem; }
+.story__text p { color: var(--ink-soft); margin-bottom: .8rem; }
+.story__sign { font-family: 'Fraunces', serif; font-style: italic; color: var(--ink);
+  font-size: 1.15rem; margin-top: 1rem; }
+.story__media { position: relative; min-height: 320px; }
+.story__media img { border-radius: 18px; box-shadow: var(--shadow); object-fit: cover; }
+.story__media .ph-main { width: 78%; height: 320px; }
+.story__media .ph-float { position: absolute; width: 46%; height: 180px; right: 0; bottom: -24px;
+  border: 5px solid var(--paper); }
+
+.gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1.2rem; }
+.gallery figure { position: relative; border-radius: var(--radius); overflow: hidden; aspect-ratio: 3/2;
+  box-shadow: var(--shadow-sm); }
+.gallery img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
+.gallery figure:hover img { transform: scale(1.07); }
+.gallery figcaption { position: absolute; left: 0; right: 0; bottom: 0; color: #fff; font-weight: 600;
+  font-size: .9rem; padding: 1.4rem .9rem .7rem;
+  background: linear-gradient(transparent, rgba(20,12,6,.8)); }
+
+/* ── Come funziona ────────────────────────────────────────────────────────── */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin-top: 1rem; }
+.step { text-align: center; padding: 1.4rem 1rem; }
+.step__num { width: 52px; height: 52px; border-radius: 50%; background: var(--tomato); color: #fff;
+  font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 700; display: grid; place-items: center;
+  margin: 0 auto .8rem; box-shadow: var(--shadow-sm); }
+.step h3 { font-size: 1.15rem; margin-bottom: .3rem; }
+.step p { color: var(--ink-soft); font-size: .9rem; }
+
+/* ── Selettore tipo ordine (consegna / asporto / tavolo) ──────────────────── */
+.order-types { display: grid; grid-template-columns: repeat(3, 1fr); gap: .7rem; margin-bottom: 1.2rem; }
+.order-type { border: 1.5px solid var(--line); border-radius: var(--radius-sm); padding: 1rem .7rem;
+  text-align: center; cursor: pointer; transition: all .15s; background: var(--paper); }
+.order-type:hover { border-color: var(--crust); }
+.order-type.is-active { border-color: var(--tomato); background: #fff5f2; box-shadow: var(--shadow-sm); }
+.order-type .ot-ico { font-size: 1.7rem; }
+.order-type strong { display: block; font-size: .92rem; margin-top: .2rem; }
+.order-type small { color: var(--ink-soft); font-size: .72rem; }
 
 /* ============================================================================
    ADMIN
