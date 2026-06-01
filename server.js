@@ -10,10 +10,47 @@ const { signToken, requireAuth, requireAdmin, getUserFromRequest } = require('./
 const { simulateCardPayment } = require('./payments');
 
 // Al primo avvio popola il database (admin, utente demo, menu) se è vuoto.
-seed.run();
+console.log('📦 Inizializzazione database...');
+try {
+  seed.run();
+  console.log('✅ Database pronto.');
+} catch (err) {
+  console.error('❌ Errore inizializzazione database:', err);
+}
 
 const app = express();
 app.use(express.json());
+
+// Middleware per i log delle richieste (utile per il debug su Render)
+app.use((req, res, next) => {
+  if (!req.url.startsWith('/images')) {
+    console.log(`[${new Date().toISOString().split('T')[1].split('.')[0]}] ${req.method} ${req.url}`);
+  }
+  next();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Debug & Health Check
+// ─────────────────────────────────────────────────────────────────────────────
+app.get('/api/debug', (req, res) => {
+  const fs = require('fs');
+  const dbPath = path.join(__dirname, config.DB_FILE);
+  const pizzasCount = db.prepare('SELECT COUNT(*) AS c FROM pizzas').get().c;
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    env: process.env.NODE_ENV || 'development',
+    database: {
+      path: dbPath,
+      exists: fs.existsSync(dbPath),
+      pizzas: pizzasCount
+    },
+    staticFiles: {
+      public: fs.existsSync(path.join(__dirname, 'public')),
+      css: fs.existsSync(path.join(__dirname, 'public', 'css', 'style.css'))
+    }
+  });
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper

@@ -78,15 +78,20 @@ function seedUsers() {
 
 function seedPizzas() {
   const count = db.prepare('SELECT COUNT(*) AS c FROM pizzas').get().c;
-  if (count > 0) return;
+  if (count > 0) {
+    console.log(`  ℹ Menu già presente (${count} pizze).`);
+    return;
+  }
+  console.log('  ⌛ Inserimento pizze nel menu...');
   const insert = db.prepare(
     `INSERT INTO pizzas (name, description, price, category, emoji, image, available)
      VALUES (@name, @description, @price, @category, @emoji, @image, 1)`
   );
   const tx = db.transaction((rows) => rows.forEach((r) => insert.run(r)));
   tx(PIZZE);
-  console.log(`  ✓ ${PIZZE.length} pizze inserite nel menu`);
+  console.log(`  ✓ ${PIZZE.length} pizze inserite nel menu.`);
 }
+
 
 function reset() {
   console.log('⚠  Reset completo del database...');

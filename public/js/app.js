@@ -652,14 +652,23 @@
     setupCardInputs();
     updateAuthUI();
 
-    // Carica configurazione + menu
-    try {
-      const [cfg, pizzasData] = await Promise.all([API.get('/api/config'), API.get('/api/pizzas')]);
-      state.config = cfg;
-      state.pizzas = pizzasData.pizzas;
-    } catch (e) {
-      toast('Impossibile caricare il menu. Riprova.', 'error');
+    // Carica configurazione + menu (con retry in caso di cold start)
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        const [cfg, pizzasData] = await Promise.all([API.get('/api/config'), API.get('/api/pizzas')]);
+        state.config = cfg;
+        state.pizzas = pizzasData.pizzas;
+        console.log('✅ Menu caricato:', state.pizzas.length, 'pizze');
+        break;
+      } catch (e) {
+        retries--;
+        console.error(`❌ Errore caricamento menu (${retries} tentativi rimasti):`, e);
+        if (retries === 0) toast('Impossibile caricare il menu. Riprova ricaricando la pagina.', 'error');
+        else await new Promise(r => setTimeout(r, 2000)); // Aspetta 2 secondi prima di riprovare
+      }
     }
+
     renderPills();
     renderGrid();
     refreshCartUI();
