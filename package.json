@@ -1,0 +1,27 @@
+{
+  "name": "pizzeria-app",
+  "version": "1.0.0",
+  "description": "Pizzeria online - ordini lato utente e gestione lato admin con pagamento contanti e carta (Stripe simulato)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node seed.js",
+    "reset": "node seed.js --reset"
+  },
+  "keywords": [
+    "pizzeria",
+    "ordini",
+    "express",
+    "sqlite",
+    "stripe"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.8.1",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

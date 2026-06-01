@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pizzeria Bella Napoli — Ordina online</title>
+  <meta name="description" content="Ordina la tua pizza preferita e ricevila a casa. Pagamento in contanti o con carta." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍕</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="brand" data-nav="menu" href="#menu">
+        <span class="logo">🍕</span>
+        <span>Bella Napoli<small>Forno a legna</small></span>
+      </a>
+      <nav class="nav">
+        <span class="nav__link" data-nav="menu">Menu</span>
+        <span class="nav__link" data-nav="orders">I miei ordini</span>
+        <span class="nav__link" data-nav="account" id="navAccount">Accedi</span>
+        <a class="nav__link" href="/admin" title="Area riservata">Admin</a>
+      </nav>
+      <button class="cart-btn" id="cartBtn" title="Carrello" aria-label="Apri carrello">
+        🛒<span class="cart-badge hidden" id="cartBadge">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- ── Vista MENU ───────────────────────────────────────────────────── -->
+    <section class="view" data-view="menu">
+      <div class="hero">
+        <div class="hero__card">
+          <h1>La vera pizza napoletana,<br />a casa tua.</h1>
+          <p>Impasto a lunga lievitazione, ingredienti freschi e forno a legna. Ordina ora e paga come preferisci.</p>
+          <div class="hero__badges">
+            <span>🔥 Forno a legna</span>
+            <span>🚴 Consegna a domicilio</span>
+            <span>💳 Carta o contanti</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="pills" id="categoryPills"></div>
+        <div class="search">
+          <input type="search" id="searchInput" placeholder="Cerca una pizza…" />
+        </div>
+      </div>
+
+      <div class="grid" id="pizzaGrid"></div>
+    </section>
+
+    <!-- ── Vista CHECKOUT ───────────────────────────────────────────────── -->
+    <section class="view hidden" data-view="checkout">
+      <div class="view__head"><h2>Completa l'ordine</h2></div>
+      <div class="cols">
+        <div class="panel">
+          <h3 style="margin-bottom:1rem">Dati di consegna</h3>
+          <div class="field">
+            <label for="dName">Nome e cognome</label>
+            <input id="dName" type="text" placeholder="Mario Rossi" />
+          </div>
+          <div class="field">
+            <label for="dAddr">Indirizzo di consegna</label>
+            <input id="dAddr" type="text" placeholder="Via Roma 12, Napoli" />
+          </div>
+          <div class="field">
+            <label for="dPhone">Telefono</label>
+            <input id="dPhone" type="tel" placeholder="333 1234567" />
+          </div>
+          <div class="field">
+            <label for="dNotes">Note (citofono, scala, allergie…)</label>
+            <textarea id="dNotes" placeholder="Es. Citofono Rossi, secondo piano"></textarea>
+          </div>
+
+          <h3 style="margin:1.4rem 0 1rem">Metodo di pagamento</h3>
+          <div class="pay-options" id="payOptions">
+            <label class="pay-option is-active" data-method="contanti">
+              <span class="pay-option__icon">💶</span>
+              <span class="pay-option__txt"><strong>Contanti alla consegna</strong><small>Paghi al rider quando arriva</small></span>
+              <input type="radio" name="pay" value="contanti" checked />
+            </label>
+            <label class="pay-option" data-method="carta">
+              <span class="pay-option__icon">💳</span>
+              <span class="pay-option__txt"><strong>Carta di credito</strong><small>Pagamento sicuro (Stripe)</small></span>
+              <input type="radio" name="pay" value="carta" />
+            </label>
+          </div>
+        </div>
+
+        <div class="panel" id="checkoutSummary"><!-- riepilogo iniettato da JS --></div>
+      </div>
+    </section>
+
+    <!-- ── Vista CONFERMA ───────────────────────────────────────────────── -->
+    <section class="view hidden" data-view="confirm">
+      <div class="panel confirm" id="confirmBox"></div>
+    </section>
+
+    <!-- ── Vista I MIEI ORDINI ──────────────────────────────────────────── -->
+    <section class="view hidden" data-view="orders">
+      <div class="view__head"><h2>I miei ordini</h2></div>
+      <div id="ordersList"></div>
+    </section>
+
+    <!-- ── Vista ACCOUNT ────────────────────────────────────────────────── -->
+    <section class="view hidden" data-view="account">
+      <div class="auth-wrap" id="accountArea"><!-- login/registrazione o profilo --></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      🍕 <strong>Pizzeria Bella Napoli</strong> — Via Toledo 100, Napoli · Tutti i giorni 18:00–24:00<br />
+      Progetto dimostrativo · pagamenti simulati (nessun addebito reale).
+    </div>
+  </footer>
+
+  <!-- ── Drawer carrello ────────────────────────────────────────────────── -->
+  <div class="overlay" id="overlay"></div>
+  <aside class="drawer" id="cartDrawer" aria-hidden="true">
+    <div class="drawer__head">
+      <h2>Il tuo carrello</h2>
+      <button class="icon-btn" id="closeCart" aria-label="Chiudi">✕</button>
+    </div>
+    <div class="drawer__body" id="cartBody"></div>
+    <div class="drawer__foot" id="cartFoot"></div>
+  </aside>
+
+  <!-- ── Modale pagamento (stile Stripe) ────────────────────────────────── -->
+  <div class="modal-overlay" id="payModalOverlay">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal__head">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <h3>Pagamento con carta</h3>
+          <button class="icon-btn" id="closePayModal" aria-label="Chiudi">✕</button>
+        </div>
+        <p class="muted" style="font-size:.85rem">Pagamento sicuro simulato · nessun addebito reale</p>
+      </div>
+      <div class="modal__body">
+        <div class="credit-card">
+          <div class="brands"><span>VISA</span><span>MC</span></div>
+          <div class="chip"></div>
+          <div class="ccnum" id="ccPreview">•••• •••• •••• ••••</div>
+          <div class="ccrow"><span id="ccNamePreview">NOME COGNOME</span><span id="ccExpPreview">MM/AA</span></div>
+        </div>
+
+        <div class="test-cards">
+          Carte di test (clicca per usarle):<br />
+          ✅ <code data-card="4242 4242 4242 4242">4242 4242 4242 4242</code> approvata ·
+          ❌ <code data-card="4000 0000 0000 0002">4000 0000 0000 0002</code> rifiutata
+        </div>
+
+        <div class="field">
+          <label for="ccName">Titolare della carta</label>
+          <input id="ccName" type="text" placeholder="Mario Rossi" autocomplete="cc-name" />
+        </div>
+        <div class="field">
+          <label for="ccNumber">Numero carta</label>
+          <input id="ccNumber" type="text" inputmode="numeric" placeholder="1234 5678 9012 3456" autocomplete="cc-number" maxlength="23" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="ccExp">Scadenza</label>
+            <input id="ccExp" type="text" inputmode="numeric" placeholder="MM/AA" autocomplete="cc-exp" maxlength="7" />
+          </div>
+          <div class="field">
+            <label for="ccCvc">CVC</label>
+            <input id="ccCvc" type="text" inputmode="numeric" placeholder="123" autocomplete="cc-csc" maxlength="4" />
+          </div>
+        </div>
+        <div class="form-error" id="payError"></div>
+        <button class="btn btn--primary btn--block btn--lg" id="payNowBtn">Paga</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Nav mobile in basso ────────────────────────────────────────────── -->
+  <nav class="mobile-nav">
+    <button data-nav="menu" class="is-active"><span class="mi">🍕</span>Menu</button>
+    <button data-nav="orders"><span class="mi">📦</span>Ordini</button>
+    <button id="mCartBtn"><span class="mi">🛒</span>Carrello</button>
+    <button data-nav="account"><span class="mi">👤</span>Account</button>
+  </nav>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
