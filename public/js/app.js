@@ -117,8 +117,11 @@
              <button data-act="inc" aria-label="Aggiungi">+</button>
            </div>`
         : `<button class="btn btn--primary btn--sm" data-add="${p.id}">Aggiungi</button>`;
-      const img = p.image
-        ? `<img src="/images/${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="this.remove()" />`
+      const imgPath = (p.image && (p.image.startsWith('http') || p.image.startsWith('https')))
+        ? p.image
+        : (p.image ? `/images/${p.image}` : '');
+      const img = imgPath
+        ? `<img src="${escapeHtml(imgPath)}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="this.remove()" />`
         : '';
       return `<article class="pizza-card ${p.available ? '' : 'is-unavailable'}">
         <div class="pizza-card__media">

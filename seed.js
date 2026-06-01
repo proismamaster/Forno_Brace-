@@ -8,29 +8,39 @@ const config = require('./config');
 
 const PIZZE = [
   // Pizze Classiche
-  { name: 'Margherita', price: 600, category: 'pizze', emoji: '🍕', image: 'margherita.jpg',
+  { name: 'Margherita', price: 600, category: 'pizze', emoji: '🍕', 
+    image: 'https://images.unsplash.com/photo-1574071318508-1cdbad80ad38?auto=format&fit=crop&w=800&q=80',
     description: 'Pomodoro, mozzarella e basilico. La semplicità vulcanica.' },
-  { name: 'Diavola', price: 750, category: 'pizze', emoji: '🌶️', image: 'diavola.jpg',
+  { name: 'Diavola', price: 750, category: 'pizze', emoji: '🌶️', 
+    image: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?auto=format&fit=crop&w=800&q=80',
     description: 'Pomodoro, mozzarella e salame piccante. Un classico piccante.' },
-  { name: 'Prosciutto e Funghi', price: 800, category: 'pizze', emoji: '🍄', image: 'funghi.jpg',
+  { name: 'Prosciutto e Funghi', price: 800, category: 'pizze', emoji: '🍄', 
+    image: 'https://images.pexels.com/photos/825661/pexels-photo-825661.jpeg?auto=compress&cs=tinysrgb&w=800',
     description: 'Pomodoro, mozzarella, prosciutto cotto e funghi freschi.' },
-  { name: 'Quattro Stagioni', price: 850, category: 'pizze', emoji: '🍂', image: 'quattro-stagioni.jpg',
+  { name: 'Quattro Stagioni', price: 850, category: 'pizze', emoji: '🍂', 
+    image: 'https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg?auto=compress&cs=tinysrgb&w=800',
     description: 'Pomodoro, mozzarella, funghi, carciofi, prosciutto cotto e olive.' },
   
   // Specialità Kebab
-  { name: 'Panino Kebab', price: 650, category: 'kebab', emoji: '🥙', image: 'pizza-hot.jpg',
+  { name: 'Panino Kebab', price: 650, category: 'kebab', emoji: '🥙', 
+    image: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=800&q=80',
     description: 'Carne kebab, insalata, pomodoro, cipolla e salse a scelta.' },
-  { name: 'Piadina Kebab', price: 650, category: 'kebab', emoji: '🌯', image: 'bianca.jpg',
+  { name: 'Piadina Kebab', price: 650, category: 'kebab', emoji: '🌯', 
+    image: 'https://images.unsplash.com/photo-1561651823-34feb02250e4?auto=format&fit=crop&w=800&q=80',
     description: 'Piadina con carne kebab, verdure fresche e salse artigianali.' },
-  { name: 'Pizza Kebab', price: 900, category: 'kebab', emoji: '🍕', image: 'bufalina.jpg',
+  { name: 'Pizza Kebab', price: 900, category: 'kebab', emoji: '🍕', 
+    image: 'https://images.pexels.com/photos/2619967/pexels-photo-2619967.jpeg?auto=compress&cs=tinysrgb&w=800',
     description: 'Pomodoro, mozzarella e abbondante carne kebab.' },
-  { name: 'Piatto Kebab', price: 900, category: 'kebab', emoji: '🍽️', image: 'vegetariana.jpg',
+  { name: 'Piatto Kebab', price: 900, category: 'kebab', emoji: '🍽️', 
+    image: 'https://images.pexels.com/photos/461198/pexels-photo-461198.jpeg?auto=compress&cs=tinysrgb&w=800',
     description: 'Carne kebab servita con patatine fritte, insalata e salse.' },
 
   // Altro
-  { name: 'Hamburger Classico', price: 600, category: 'hamburger', emoji: '🍔', image: 'sala.jpg',
+  { name: 'Hamburger Classico', price: 600, category: 'hamburger', emoji: '🍔', 
+    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80',
     description: 'Pane, carne 100% manzo, insalata e pomodoro.' },
-  { name: 'Patatine Fritte', price: 350, category: 'contorni', emoji: '🍟', image: 'forno.jpg',
+  { name: 'Patatine Fritte', price: 350, category: 'contorni', emoji: '🍟', 
+    image: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=800&q=80',
     description: 'Porzione di patatine fritte croccanti.' },
 ];
 
