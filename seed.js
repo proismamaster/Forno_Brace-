@@ -7,49 +7,31 @@ const db = require('./db');
 const config = require('./config');
 
 const PIZZE = [
-  // classiche
-  { name: 'Margherita', price: 650, category: 'classiche', emoji: '🍕', image: 'margherita.jpg',
-    description: 'Pomodoro San Marzano, mozzarella fior di latte, basilico fresco, olio EVO.' },
-  { name: 'Marinara', price: 550, category: 'classiche', emoji: '🍅', image: 'marinara.jpg',
-    description: 'Pomodoro, aglio, origano e olio extravergine. La più antica.' },
-  { name: 'Napoli', price: 750, category: 'classiche', emoji: '🐟', image: 'capricciosa.jpg',
-    description: 'Pomodoro, mozzarella, acciughe, capperi e origano.' },
-  { name: 'Prosciutto', price: 800, category: 'classiche', emoji: '🍖', image: 'boscaiola.jpg',
-    description: 'Pomodoro, mozzarella e prosciutto cotto.' },
-  { name: 'Prosciutto e Funghi', price: 850, category: 'classiche', emoji: '🍄', image: 'funghi.jpg',
-    description: 'Pomodoro, mozzarella, prosciutto cotto e funghi champignon.' },
+  // Pizze Classiche
+  { name: 'Margherita', price: 600, category: 'pizze', emoji: '🍕', image: 'margherita.jpg',
+    description: 'Pomodoro, mozzarella e basilico. La semplicità vulcanica.' },
+  { name: 'Diavola', price: 750, category: 'pizze', emoji: '🌶️', image: 'diavola.jpg',
+    description: 'Pomodoro, mozzarella e salame piccante. Un classico piccante.' },
+  { name: 'Prosciutto e Funghi', price: 800, category: 'pizze', emoji: '🍄', image: 'funghi.jpg',
+    description: 'Pomodoro, mozzarella, prosciutto cotto e funghi freschi.' },
+  { name: 'Quattro Stagioni', price: 850, category: 'pizze', emoji: '🍂', image: 'quattro-stagioni.jpg',
+    description: 'Pomodoro, mozzarella, funghi, carciofi, prosciutto cotto e olive.' },
+  
+  // Specialità Kebab
+  { name: 'Panino Kebab', price: 650, category: 'kebab', emoji: '🥙', image: 'pizza-hot.jpg',
+    description: 'Carne kebab, insalata, pomodoro, cipolla e salse a scelta.' },
+  { name: 'Piadina Kebab', price: 650, category: 'kebab', emoji: '🌯', image: 'bianca.jpg',
+    description: 'Piadina con carne kebab, verdure fresche e salse artigianali.' },
+  { name: 'Pizza Kebab', price: 900, category: 'kebab', emoji: '🍕', image: 'bufalina.jpg',
+    description: 'Pomodoro, mozzarella e abbondante carne kebab.' },
+  { name: 'Piatto Kebab', price: 900, category: 'kebab', emoji: '🍽️', image: 'vegetariana.jpg',
+    description: 'Carne kebab servita con patatine fritte, insalata e salse.' },
 
-  // speciali
-  { name: 'Diavola', price: 850, category: 'speciali', emoji: '🌶️', image: 'diavola.jpg',
-    description: 'Pomodoro, mozzarella e salame piccante. Per chi ama il fuoco.' },
-  { name: 'Capricciosa', price: 950, category: 'speciali', emoji: '🎭', image: 'capricciosa.jpg',
-    description: 'Pomodoro, mozzarella, prosciutto, funghi, carciofi e olive.' },
-  { name: 'Quattro Stagioni', price: 950, category: 'speciali', emoji: '🍂', image: 'quattro-stagioni.jpg',
-    description: 'Quattro spicchi: funghi, carciofi, prosciutto e olive.' },
-  { name: 'Boscaiola', price: 950, category: 'speciali', emoji: '🌲', image: 'boscaiola.jpg',
-    description: 'Mozzarella, funghi porcini, salsiccia e panna.' },
-  { name: 'Bufalina', price: 1000, category: 'speciali', emoji: '🧀', image: 'bufalina.jpg',
-    description: 'Pomodoro, mozzarella di bufala DOP e basilico.' },
-  { name: 'Calzone Farcito', price: 950, category: 'speciali', emoji: '🥟', image: 'pizza-hot.jpg',
-    description: 'Ripieno di pomodoro, mozzarella, prosciutto cotto e ricotta.' },
-
-  // bianche (senza pomodoro)
-  { name: 'Quattro Formaggi', price: 950, category: 'bianche', emoji: '🧀', image: 'quattro-formaggi.jpg',
-    description: 'Mozzarella, gorgonzola, fontina e parmigiano. Tutta cremosità.' },
-  { name: 'Patate e Salsiccia', price: 950, category: 'bianche', emoji: '🥔', image: 'bianca.jpg',
-    description: 'Mozzarella, patate a fette, salsiccia e rosmarino.' },
-  { name: 'Tonno e Cipolla', price: 900, category: 'bianche', emoji: '🧅', image: 'bianca.jpg',
-    description: 'Mozzarella, tonno e cipolla di Tropea.' },
-
-  // vegetariane
-  { name: 'Vegetariana', price: 900, category: 'vegetariane', emoji: '🥦', image: 'vegetariana.jpg',
-    description: 'Pomodoro, mozzarella e verdure grigliate di stagione.' },
-  { name: 'Ortolana', price: 900, category: 'vegetariane', emoji: '🥬', image: 'vegetariana.jpg',
-    description: 'Pomodoro, mozzarella, zucchine, melanzane e peperoni.' },
-  { name: 'Parmigiana', price: 950, category: 'vegetariane', emoji: '🍆', image: 'funghi.jpg',
-    description: 'Pomodoro, mozzarella, melanzane fritte e parmigiano.' },
-  { name: 'Margherita Veg', price: 850, category: 'vegetariane', emoji: '🌱', image: 'margherita.jpg',
-    description: 'Pomodoro, mozzarella vegetale e basilico. 100% plant-based.' },
+  // Altro
+  { name: 'Hamburger Classico', price: 600, category: 'hamburger', emoji: '🍔', image: 'sala.jpg',
+    description: 'Pane, carne 100% manzo, insalata e pomodoro.' },
+  { name: 'Patatine Fritte', price: 350, category: 'contorni', emoji: '🍟', image: 'forno.jpg',
+    description: 'Porzione di patatine fritte croccanti.' },
 ];
 
 function hash(pwd) {

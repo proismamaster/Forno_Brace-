@@ -10,7 +10,7 @@ module.exports = {
   // Account amministratore creato automaticamente al primo avvio.
   ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'admin@pizzeria.it',
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'admin123',
-  ADMIN_NAME: 'Amministratore',
+  ADMIN_NAME: 'Pizzeria Vulcano Admin',
 
   // Account utente demo creato automaticamente (per provare velocemente).
   DEMO_EMAIL: 'mario@example.com',
@@ -18,7 +18,7 @@ module.exports = {
   DEMO_NAME: 'Mario Rossi',
 
   // Costo di consegna in centesimi (es. 250 = 2,50 €). 0 = gratis.
-  DELIVERY_FEE: 250,
+  DELIVERY_FEE: 150,
   // Soglia in centesimi sopra la quale la consegna è gratuita (es. 2000 = 20 €).
-  FREE_DELIVERY_OVER: 2000,
+  FREE_DELIVERY_OVER: 2500,
 };
