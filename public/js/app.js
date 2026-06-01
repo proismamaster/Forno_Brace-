@@ -9,6 +9,7 @@
     search: '',
     config: { deliveryFee: 0, freeDeliveryOver: 0 },
     paymentMethod: 'contanti',
+    orderType: 'consegna',
     pendingCheckout: false,
     lastOrder: null,
   };
@@ -21,6 +22,7 @@
   function deliveryFee() {
     const sub = cartSubtotal();
     if (sub === 0) return 0;
+    if (state.orderType !== 'consegna') return 0; // asporto e tavolo: nessun costo di consegna
     if (state.config.freeDeliveryOver > 0 && sub >= state.config.freeDeliveryOver) return 0;
     return state.config.deliveryFee;
   }
@@ -115,14 +117,23 @@
              <button data-act="inc" aria-label="Aggiungi">+</button>
            </div>`
         : `<button class="btn btn--primary btn--sm" data-add="${p.id}">Aggiungi</button>`;
+      const img = p.image
+        ? `<img src="/images/${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="this.remove()" />`
+        : '';
       return `<article class="pizza-card ${p.available ? '' : 'is-unavailable'}">
-        <span class="pizza-card__cat">${escapeHtml(p.category)}</span>
-        <span class="pizza-card__emoji">${p.emoji}</span>
-        <h3>${escapeHtml(p.name)}</h3>
-        <p class="pizza-card__desc">${escapeHtml(p.description)}</p>
-        <div class="pizza-card__foot">
-          <span class="price">${euro(p.price)}</span>
-          ${p.available ? control : '<span class="muted">Esaurita</span>'}
+        <div class="pizza-card__media">
+          <span class="pizza-card__cat">${escapeHtml(p.category)}</span>
+          <span class="media-emoji">${p.emoji}</span>
+          ${img}
+          ${p.available ? '' : '<span class="sold-out">Esaurita</span>'}
+        </div>
+        <div class="pizza-card__body">
+          <h3>${escapeHtml(p.name)}</h3>
+          <p class="pizza-card__desc">${escapeHtml(p.description)}</p>
+          <div class="pizza-card__foot">
+            <span class="price">${euro(p.price)}</span>
+            ${p.available ? control : ''}
+          </div>
         </div>
       </article>`;
     }).join('');
@@ -216,11 +227,17 @@
       return;
     }
     const sub = cartSubtotal(), fee = deliveryFee();
+    const typeLabel = { consegna: '🛵 Consegna a domicilio', asporto: '🥡 Asporto', tavolo: '🍽️ Al tavolo' }[state.orderType];
+    const feeRow = state.orderType === 'consegna'
+      ? `<div class="summary-row"><span>Consegna</span><span>${fee === 0 ? 'Gratis' : euro(fee)}</span></div>`
+      : `<div class="summary-row"><span>Servizio</span><span>Gratis</span></div>`;
     box.innerHTML = `
       <h3 style="margin-bottom:1rem">Riepilogo</h3>
+      <div class="summary-row" style="font-weight:600;color:var(--ink)"><span>Modalità</span><span>${typeLabel}</span></div>
+      <div style="border-top:1px dashed var(--line);margin:.6rem 0"></div>
       ${state.cart.map((i) => `<div class="summary-row"><span>${i.quantity}× ${escapeHtml(i.name)}</span><span>${euro(i.price * i.quantity)}</span></div>`).join('')}
       <div class="summary-row" style="margin-top:.6rem"><span>Subtotale</span><span>${euro(sub)}</span></div>
-      <div class="summary-row"><span>Consegna</span><span>${fee === 0 ? 'Gratis' : euro(fee)}</span></div>
+      ${feeRow}
       <div class="summary-row total"><span>Totale</span><span class="price">${euro(cartTotal())}</span></div>
       <button class="btn btn--green btn--block btn--lg" id="placeOrderBtn" style="margin-top:1rem">
         ${state.paymentMethod === 'carta' ? '💳 Paga ' + euro(cartTotal()) : '✅ Conferma ordine'}
@@ -230,25 +247,45 @@
     box.querySelector('#backMenuBtn').addEventListener('click', () => showView('menu'));
   }
 
+  // Mostra/nasconde i campi del checkout in base al tipo di ordine.
+  function setOrderType(type) {
+    state.orderType = type;
+    document.querySelectorAll('.order-type').forEach((o) =>
+      o.classList.toggle('is-active', o.dataset.type === type));
+    document.querySelectorAll('[data-for]').forEach((el) => {
+      const types = el.dataset.for.split(' ');
+      el.classList.toggle('hidden', !types.includes(type));
+    });
+    const lbl = document.getElementById('dTimeLabel');
+    if (lbl) lbl.textContent = type === 'tavolo' ? 'Orario di arrivo' : 'Orario di ritiro';
+    if (currentView() === 'checkout') renderCheckoutSummary();
+  }
+
   function gatherDelivery() {
-    const name = document.getElementById('dName').value.trim();
-    const address = document.getElementById('dAddr').value.trim();
-    const phone = document.getElementById('dPhone').value.trim();
-    const notes = document.getElementById('dNotes').value.trim();
-    return { name, address, phone, notes };
+    return {
+      name: document.getElementById('dName').value.trim(),
+      address: document.getElementById('dAddr').value.trim(),
+      phone: document.getElementById('dPhone').value.trim(),
+      scheduled_time: document.getElementById('dTime').value.trim(),
+      party_size: document.getElementById('dParty').value.trim(),
+      notes: document.getElementById('dNotes').value.trim(),
+    };
   }
 
   function placeOrder() {
     const d = gatherDelivery();
-    if (!d.name || !d.address || !d.phone) {
-      toast('Compila nome, indirizzo e telefono.', 'error');
-      return;
+    if (!d.name) { toast('Inserisci il tuo nome.', 'error'); return; }
+    if (state.orderType === 'consegna' && (!d.address || !d.phone)) {
+      toast('Per la consegna servono indirizzo e telefono.', 'error'); return;
     }
-    if (state.paymentMethod === 'carta') {
-      openPayModal();
-    } else {
-      submitOrder(null);
+    if (state.orderType === 'asporto' && !d.phone) {
+      toast('Per l\'asporto serve un numero di telefono.', 'error'); return;
     }
+    if (state.orderType === 'tavolo' && (!d.party_size || Number(d.party_size) < 1)) {
+      toast('Indica per quante persone è il tavolo.', 'error'); return;
+    }
+    if (state.paymentMethod === 'carta') openPayModal();
+    else submitOrder(null);
   }
 
   async function submitOrder(card) {
@@ -256,8 +293,12 @@
     const payload = {
       items: state.cart.map((i) => ({ pizza_id: i.pizza_id, quantity: i.quantity })),
       payment_method: state.paymentMethod,
+      order_type: state.orderType,
       card,
-      delivery: { name: d.name, address: d.address, phone: d.phone },
+      delivery: {
+        name: d.name, address: d.address, phone: d.phone,
+        scheduled_time: d.scheduled_time, party_size: d.party_size,
+      },
       notes: d.notes,
     };
     const data = await API.post('/api/orders', payload); // può lanciare
@@ -347,17 +388,26 @@
 
   // ── Conferma ordine ───────────────────────────────────────────────────────
   function renderConfirm(order) {
+    const typeMap = { consegna: '🛵 Consegna a domicilio', asporto: '🥡 Asporto', tavolo: '🍽️ Al tavolo' };
+    const payWhere = order.order_type === 'consegna' ? 'alla consegna' : 'in pizzeria';
     const paidLabel = order.payment_method === 'carta'
       ? '<span class="badge badge--pagato">Pagato con carta</span>'
-      : '<span class="badge badge--contanti">Da pagare alla consegna</span>';
+      : `<span class="badge badge--contanti">Da pagare ${payWhere}</span>`;
+    let detail = '';
+    if (order.order_type === 'consegna') detail = `📍 Consegna a ${escapeHtml(order.delivery_address)}`;
+    else if (order.order_type === 'asporto') detail = `🥡 Ritiro in pizzeria${order.scheduled_time ? ' alle ' + escapeHtml(order.scheduled_time) : ''}`;
+    else detail = `🍽️ Tavolo per ${order.party_size}${order.scheduled_time ? ' · arrivo alle ' + escapeHtml(order.scheduled_time) : ''}`;
+    const feeRow = order.delivery_fee > 0
+      ? `<div class="summary-row"><span>Consegna</span><span>${euro(order.delivery_fee)}</span></div>` : '';
     document.getElementById('confirmBox').innerHTML = `
       <div class="confirm__check">✓</div>
       <h2 style="font-size:1.7rem">Ordine confermato!</h2>
-      <p class="muted">Il tuo ordine <strong>#${order.id}</strong> è stato inviato alla pizzeria.</p>
+      <p class="muted">Ordine <strong>#${order.id}</strong> — ${typeMap[order.order_type]}</p>
+      <p class="muted" style="font-size:.92rem;margin-top:.2rem">${detail}</p>
       <p style="margin:.8rem 0">${paidLabel}</p>
       <div class="panel" style="max-width:420px;margin:1.2rem auto;text-align:left">
         ${order.items.map((i) => `<div class="summary-row"><span>${i.quantity}× ${escapeHtml(i.pizza_name)}</span><span>${euro(i.unit_price * i.quantity)}</span></div>`).join('')}
-        <div class="summary-row"><span>Consegna</span><span>${order.delivery_fee === 0 ? 'Gratis' : euro(order.delivery_fee)}</span></div>
+        ${feeRow}
         <div class="summary-row total"><span>Totale</span><span class="price">${euro(order.total)}</span></div>
       </div>
       <div style="display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap">
@@ -372,13 +422,31 @@
   }
 
   // ── I miei ordini ─────────────────────────────────────────────────────────
-  function timelineHtml(status) {
-    if (status === 'annullato') return `<p style="margin-top:.6rem"><span class="badge badge--annullato">Ordine annullato</span></p>`;
-    const idx = STATUS_FLOW.indexOf(status);
+  function orderTypeBadge(o) {
+    const m = { consegna: '🛵 Consegna', asporto: '🥡 Asporto', tavolo: '🍽️ Al tavolo' };
+    return `<span class="badge badge--carta" style="background:#eef2ff;color:#3b54b4">${m[o.order_type] || m.consegna}</span>`;
+  }
+  function orderTypeLine(o) {
+    if (o.order_type === 'asporto') return `🥡 Asporto${o.scheduled_time ? ' · ritiro alle ' + escapeHtml(o.scheduled_time) : ''}`;
+    if (o.order_type === 'tavolo') return `🍽️ Al tavolo per ${o.party_size}${o.scheduled_time ? ' · alle ' + escapeHtml(o.scheduled_time) : ''}`;
+    return `🛵 Consegna a ${escapeHtml(o.delivery_address || '')}`;
+  }
+
+  function statusLabelFor(orderType, status) {
+    if (orderType === 'asporto')
+      return { ricevuto: 'Ricevuto', in_preparazione: 'In preparazione', in_consegna: 'Pronto', consegnato: 'Ritirato' }[status] || STATUS_LABELS[status];
+    if (orderType === 'tavolo')
+      return { ricevuto: 'Ricevuto', in_preparazione: 'In preparazione', in_consegna: 'Pronto', consegnato: 'Servito' }[status] || STATUS_LABELS[status];
+    return STATUS_LABELS[status];
+  }
+
+  function timelineHtml(o) {
+    if (o.status === 'annullato') return `<p style="margin-top:.6rem"><span class="badge badge--annullato">Ordine annullato</span></p>`;
+    const idx = STATUS_FLOW.indexOf(o.status);
     return `<div class="timeline">${STATUS_FLOW.map((s, i) => {
       const cls = i < idx ? 'done' : i === idx ? 'current done' : '';
       const icon = i < idx ? '✓' : (i + 1);
-      return `<div class="timeline__step ${cls}"><div class="timeline__dot">${icon}</div>${STATUS_LABELS[s]}</div>`;
+      return `<div class="timeline__step ${cls}"><div class="timeline__dot">${icon}</div>${statusLabelFor(o.order_type, s)}</div>`;
     }).join('')}</div>`;
   }
 
@@ -404,17 +472,18 @@
           <div class="order-card__head">
             <span class="order-card__id">Ordine #${o.id}</span>
             <div style="display:flex;gap:.4rem;flex-wrap:wrap">
-              <span class="badge badge--${o.status}">${STATUS_LABELS[o.status]}</span>
+              ${orderTypeBadge(o)}
+              <span class="badge badge--${o.status}">${statusLabelFor(o.order_type, o.status)}</span>
               <span class="badge badge--${o.payment_method}">${o.payment_method === 'carta' ? '💳 Carta' : '💶 Contanti'}</span>
               <span class="badge badge--${o.payment_status}">${PAYMENT_LABELS[o.payment_status]}</span>
             </div>
           </div>
-          <small class="muted">${formatDate(o.created_at)} · consegna a ${escapeHtml(o.delivery_address)}</small>
+          <small class="muted">${formatDate(o.created_at)} · ${orderTypeLine(o)}</small>
           <ul class="order-items-list">
             ${o.items.map((i) => `<li><span>${i.quantity}× ${escapeHtml(i.pizza_name)}</span><span>${euro(i.unit_price * i.quantity)}</span></li>`).join('')}
             <li style="font-weight:700;color:var(--ink);border-top:1px solid var(--line);padding-top:.4rem;margin-top:.2rem"><span>Totale</span><span>${euro(o.total)}</span></li>
           </ul>
-          ${timelineHtml(o.status)}
+          ${timelineHtml(o)}
         </div>`).join('');
     } catch (e) {
       list.innerHTML = `<div class="empty-state">Errore nel caricamento.</div>`;
@@ -566,6 +635,18 @@
         opt.querySelector('input').checked = true;
         state.paymentMethod = opt.dataset.method;
         if (currentView() === 'checkout') renderCheckoutSummary();
+      }));
+
+    // Tipo di ordine: consegna / asporto / tavolo
+    document.querySelectorAll('.order-type').forEach((opt) =>
+      opt.addEventListener('click', () => setOrderType(opt.dataset.type)));
+    setOrderType('consegna');
+
+    // Pulsanti della hero che scorrono alle sezioni
+    document.querySelectorAll('[data-scroll]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const el = document.getElementById(b.dataset.scroll);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }));
 
     setupCardInputs();

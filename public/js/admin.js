@@ -108,9 +108,34 @@
     }
   }
 
+  const ORDER_TYPE_BADGE = { consegna: '🛵 Consegna', asporto: '🥡 Asporto', tavolo: '🍽️ Al tavolo' };
+
+  function adminStatusLabel(orderType, status) {
+    if (orderType === 'asporto')
+      return { ricevuto: 'Ricevuto', in_preparazione: 'In preparazione', in_consegna: 'Pronto', consegnato: 'Ritirato', annullato: 'Annullato' }[status] || STATUS_LABELS[status];
+    if (orderType === 'tavolo')
+      return { ricevuto: 'Ricevuto', in_preparazione: 'In preparazione', in_consegna: 'Pronto', consegnato: 'Servito', annullato: 'Annullato' }[status] || STATUS_LABELS[status];
+    return STATUS_LABELS[status];
+  }
+
+  function orderMeta(o) {
+    const parts = [`🕒 <b>${formatDate(o.created_at)}</b>`, `👤 <b>${escapeHtml(o.delivery_name)}</b>`];
+    if (o.order_type === 'consegna') {
+      parts.push(`📍 <b>${escapeHtml(o.delivery_address || '')}</b>`);
+      if (o.delivery_phone) parts.push(`📞 <b>${escapeHtml(o.delivery_phone)}</b>`);
+    } else if (o.order_type === 'asporto') {
+      if (o.delivery_phone) parts.push(`📞 <b>${escapeHtml(o.delivery_phone)}</b>`);
+      if (o.scheduled_time) parts.push(`🥡 ritiro <b>${escapeHtml(o.scheduled_time)}</b>`);
+    } else {
+      parts.push(`🍽️ <b>${o.party_size} coperti</b>`);
+      if (o.scheduled_time) parts.push(`🕘 arrivo <b>${escapeHtml(o.scheduled_time)}</b>`);
+    }
+    return parts.map((p) => `<span>${p}</span>`).join('');
+  }
+
   function orderCardHtml(o, isNew) {
     const statusOptions = ['ricevuto', 'in_preparazione', 'in_consegna', 'consegnato', 'annullato']
-      .map((s) => `<option value="${s}" ${s === o.status ? 'selected' : ''}>${STATUS_LABELS[s]}</option>`).join('');
+      .map((s) => `<option value="${s}" ${s === o.status ? 'selected' : ''}>${adminStatusLabel(o.order_type, s)}</option>`).join('');
     const cust = o.customer ? `${escapeHtml(o.customer.name)} · ${escapeHtml(o.customer.email)}` : '—';
     const showMarkPaid = o.payment_status === 'in_attesa' && o.status !== 'annullato';
     return `
@@ -118,17 +143,13 @@
         <div class="admin-order__head">
           <span class="order-card__id">#${o.id} · ${cust}</span>
           <div style="display:flex;gap:.4rem;flex-wrap:wrap">
-            <span class="badge badge--${o.status}">${STATUS_LABELS[o.status]}</span>
+            <span class="badge" style="background:#eef2ff;color:#3b54b4">${ORDER_TYPE_BADGE[o.order_type] || ORDER_TYPE_BADGE.consegna}</span>
+            <span class="badge badge--${o.status}">${adminStatusLabel(o.order_type, o.status)}</span>
             <span class="badge badge--${o.payment_method}">${o.payment_method === 'carta' ? '💳 Carta' : '💶 Contanti'}</span>
             <span class="badge badge--${o.payment_status}">${PAYMENT_LABELS[o.payment_status]}</span>
           </div>
         </div>
-        <div class="admin-order__meta">
-          <span>🕒 <b>${formatDate(o.created_at)}</b></span>
-          <span>📍 <b>${escapeHtml(o.delivery_address)}</b></span>
-          <span>📞 <b>${escapeHtml(o.delivery_phone)}</b></span>
-          <span>👤 <b>${escapeHtml(o.delivery_name)}</b></span>
-        </div>
+        <div class="admin-order__meta">${orderMeta(o)}</div>
         <ul class="order-items-list">
           ${o.items.map((i) => `<li><span>${i.quantity}× ${escapeHtml(i.pizza_name)}</span><span>${euro(i.unit_price * i.quantity)}</span></li>`).join('')}
           <li style="font-weight:700;color:var(--ink);border-top:1px solid var(--line);padding-top:.4rem"><span>Totale</span><span>${euro(o.total)}</span></li>
@@ -176,7 +197,14 @@
       <thead><tr><th>Pizza</th><th>Categoria</th><th>Prezzo</th><th>Stato</th><th>Azioni</th></tr></thead>
       <tbody>${state.pizzas.map((p) => `
         <tr>
-          <td><span style="font-size:1.3rem">${p.emoji}</span> <b>${escapeHtml(p.name)}</b><br><small class="muted">${escapeHtml(p.description)}</small></td>
+          <td>
+            <div style="display:flex;align-items:center;gap:.7rem">
+              ${p.image
+                ? `<img src="/images/${escapeHtml(p.image)}" alt="" style="width:48px;height:48px;border-radius:10px;object-fit:cover;flex:none" onerror="this.style.display='none'" />`
+                : `<span style="font-size:1.6rem;width:48px;text-align:center">${p.emoji}</span>`}
+              <div><b>${escapeHtml(p.name)}</b><br><small class="muted">${escapeHtml(p.description)}</small></div>
+            </div>
+          </td>
           <td>${escapeHtml(p.category)}</td>
           <td>${euro(p.price)}</td>
           <td>${p.available
@@ -213,6 +241,7 @@
     document.getElementById('pzDesc').value = pizza ? pizza.description : '';
     document.getElementById('pzPrice').value = pizza ? (pizza.price / 100).toFixed(2) : '';
     document.getElementById('pzCat').value = pizza ? pizza.category : 'classiche';
+    document.getElementById('pzImage').value = pizza ? (pizza.image || '') : '';
     document.getElementById('pzAvail').checked = pizza ? !!pizza.available : true;
     document.getElementById('pizzaModalOverlay').classList.add('is-open');
   }
@@ -233,6 +262,7 @@
       description: document.getElementById('pzDesc').value.trim(),
       price: Math.round(euros * 100),
       category: document.getElementById('pzCat').value,
+      image: document.getElementById('pzImage').value,
       available: document.getElementById('pzAvail').checked,
     };
     try {
