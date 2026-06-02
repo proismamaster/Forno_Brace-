@@ -570,10 +570,17 @@ img { max-width: 100%; display: block; }
    immagine sfocata e scurita, così riempie i lati in modo elegante. */
 .insegna {
   position: relative; border-radius: 24px; overflow: hidden; box-shadow: var(--shadow);
-  background: #160c06; isolation: isolate;
+  background: linear-gradient(270deg, #1a0f0a, #301408, #1a0f0a);
+  background-size: 200% 200%;
+  animation: heroUp .7s both cubic-bezier(.2,.7,.2,1), lavaFlow 8s ease infinite;
+  isolation: isolate;
   min-height: clamp(300px, 46vw, 520px);
   display: grid; place-items: center;
-  animation: heroUp .7s both cubic-bezier(.2,.7,.2,1);
+}
+@keyframes lavaFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 .insegna::before {
   content: ''; position: absolute; inset: -8%; z-index: 0;
