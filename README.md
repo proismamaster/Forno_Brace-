@@ -1,8 +1,9 @@
-# 🌋 Pizzeria Vulcano — Lodi Vecchio
+# 🥙 Bella Istanbul — Turkish Kebap · Pizza · Grill
 
-Sito completo per la **Pizzeria Vulcano** (Via Libertà 27, Lodi Vecchio), con **lato cliente**
-(ordini e pagamento) e **lato amministratore** (gestione ordini e menu). Pizze, kebab e hamburger,
-con consegna a domicilio, asporto o servizio al tavolo. Funziona su **telefono e PC**.
+Sito completo per **Bella Istanbul** (Via Libertà 27, Lodi Vecchio), con **lato cliente**
+(ordini e pagamento) e **lato amministratore** (gestione ordini e menu). Kebab turco halal,
+pizza nel forno a legna e specialità grill, con consegna a domicilio, asporto o al tavolo.
+Funziona su **telefono e PC**. Contatti: 327 276 9750 · 329 350 6964 (WhatsApp).
 
 - Backend: **Node.js + Express**
 - Database: **SQLite** (file locale `pizzeria.db`, nessuna installazione esterna)

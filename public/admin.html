@@ -3,18 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin · Pizzeria Vulcano</title>
+  <title>Admin · Bella Istanbul</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👨‍🍳</text></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body class="admin-body">
   <!-- ── Topbar ─────────────────────────────────────────────────────────── -->
   <header class="admin-topbar">
     <div class="container admin-topbar__inner">
-      <span class="brand"><span class="logo">🌋</span><span>Pizzeria Vulcano<small>Pannello gestione</small></span></span>
+      <span class="brand">
+        <img class="brand__logo" src="/images/insegna.jpg" alt="Bella Istanbul" onerror="this.style.display='none'" />
+        <span style="color:#cdd6ec;font-weight:700;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase">Gestione</span>
+      </span>
       <div class="spacer"></div>
       <span class="who" id="adminWho"></span>
       <a class="nav__link" href="/" style="color:#fff">↗ Sito</a>
@@ -91,10 +94,9 @@
           <div class="field"><label>Prezzo (€)</label><input id="pzPrice" type="number" step="0.50" min="0" placeholder="6.50" /></div>
           <div class="field"><label>Categoria</label>
             <select id="pzCat">
+              <option value="kebab">Kebab & Turche</option>
               <option value="pizze">Pizze</option>
-              <option value="kebab">Kebab</option>
-              <option value="hamburger">Hamburger</option>
-              <option value="contorni">Contorni</option>
+              <option value="contorni">Sfizi & Contorni</option>
             </select>
           </div>
         </div>
@@ -102,27 +104,31 @@
           <label for="pzImage">Foto del prodotto</label>
           <select id="pzImage">
             <option value="">— Nessuna (usa emoji) —</option>
+            <optgroup label="Kebab & Turche">
+              <option value="kebab-panino.jpg">Panino kebab</option>
+              <option value="durum.jpg">Dürüm / piadina arrotolata</option>
+              <option value="kebab-piadina.jpg">Piadina kebab (piatto)</option>
+              <option value="kebab-piatto.jpg">Piatto kebab (spiedini)</option>
+              <option value="doner.jpg">Döner alla fiamma</option>
+            </optgroup>
             <optgroup label="Pizze">
-              <option value="margherita.jpg">Margherita (rossa, basilico)</option>
-              <option value="marinara.jpg">Marinara (semplice rossa)</option>
-              <option value="diavola.jpg">Diavola / Vulcano (piccante)</option>
-              <option value="capricciosa.jpg">Capricciosa (mista)</option>
+              <option value="margherita.jpg">Margherita</option>
+              <option value="marinara.jpg">Marinara / Lahmacun</option>
+              <option value="diavola.jpg">Diavola (piccante)</option>
+              <option value="pizza-hot.jpg">Pizza appena sfornata</option>
+              <option value="quattro-formaggi.jpg">Quattro Formaggi</option>
+              <option value="capricciosa.jpg">Capricciosa</option>
               <option value="quattro-stagioni.jpg">Quattro Stagioni</option>
               <option value="funghi.jpg">Funghi e verdure</option>
-              <option value="boscaiola.jpg">Boscaiola (salsiccia)</option>
               <option value="bufalina.jpg">Bufalina</option>
-              <option value="quattro-formaggi.jpg">Quattro Formaggi (bianca)</option>
-              <option value="bianca.jpg">Bianca / patate</option>
+              <option value="bianca.jpg">Bianca / Pide</option>
               <option value="vegetariana.jpg">Vegetariana</option>
-              <option value="pizza-hot.jpg">Pizza appena sfornata</option>
             </optgroup>
-            <optgroup label="Kebab / Hamburger / Contorni">
-              <option value="kebab-panino.jpg">Panino kebab</option>
-              <option value="kebab-piadina.jpg">Piadina kebab</option>
-              <option value="kebab-piatto.jpg">Piatto kebab (spiedini)</option>
-              <option value="doner.jpg">Kebab alla fiamma</option>
-              <option value="hamburger.jpg">Hamburger</option>
+            <optgroup label="Sfizi & Contorni">
+              <option value="falafel.jpg">Falafel</option>
+              <option value="wings.jpg">Alette di pollo</option>
               <option value="patatine.jpg">Patatine fritte</option>
+              <option value="hamburger.jpg">Hamburger</option>
             </optgroup>
           </select>
         </div>

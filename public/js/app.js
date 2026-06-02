@@ -31,9 +31,9 @@
   function addToCart(pizza) {
     const found = state.cart.find((i) => i.pizza_id === pizza.id);
     if (found) found.quantity = Math.min(20, found.quantity + 1);
-    else state.cart.push({ pizza_id: pizza.id, name: pizza.name, emoji: pizza.emoji, price: pizza.price, quantity: 1 });
+    else state.cart.push({ pizza_id: pizza.id, name: pizza.name, emoji: pizza.emoji, image: pizza.image, price: pizza.price, quantity: 1 });
     saveCart(); refreshCartUI(); renderGrid();
-    toast(`${pizza.emoji} ${pizza.name} aggiunta`, 'success');
+    toast(`${pizza.name} aggiunto al carrello`, 'success');
   }
   function changeQty(pizzaId, delta) {
     const item = state.cart.find((i) => i.pizza_id === pizzaId);
@@ -81,23 +81,39 @@
   function updateAuthUI() {
     const user = currentUser();
     const nav = document.getElementById('navAccount');
-    nav.textContent = user ? `👤 ${user.name.split(' ')[0]}` : 'Accedi';
+    nav.textContent = user ? user.name.split(' ')[0] : 'Accedi';
   }
 
   // ── Menu ──────────────────────────────────────────────────────────────────
-  const CAT_ORDER = ['pizze', 'kebab', 'hamburger', 'contorni'];
-  const CAT_LABELS = { pizze: '🍕 Pizze', kebab: '🥙 Kebab', hamburger: '🍔 Hamburger', contorni: '🍟 Contorni', tutte: 'Tutto il menu' };
-  const CAT_LABEL = (c) => CAT_LABELS[c] || (c.charAt(0).toUpperCase() + c.slice(1));
+  const ICON = (id) => `<svg class="ic"><use href="#${id}"/></svg>`;
+  const CAT_ORDER = ['kebab', 'pizze', 'contorni'];
+  const CAT_META = {
+    kebab: { label: 'Kebab', icon: 'ic-kebab' },
+    pizze: { label: 'Pizze', icon: 'ic-pizza' },
+    contorni: { label: 'Sfizi', icon: 'ic-fries' },
+  };
+  const catLabel = (c) => (CAT_META[c] && CAT_META[c].label) || (c.charAt(0).toUpperCase() + c.slice(1));
+  const catIcon = (c) => (CAT_META[c] && CAT_META[c].icon) || 'ic-menu';
   const catRank = (c) => { const i = CAT_ORDER.indexOf(c); return i === -1 ? 99 : i; };
+  const ORDER_TYPE_META = {
+    consegna: { label: 'Consegna', icon: 'ic-truck' },
+    asporto: { label: 'Asporto', icon: 'ic-bag' },
+    tavolo: { label: 'Al tavolo', icon: 'ic-table' },
+  };
+  const orderTypeChip = (t) => {
+    const m = ORDER_TYPE_META[t] || ORDER_TYPE_META.consegna;
+    return `${ICON(m.icon)} ${m.label}`;
+  };
 
   function renderPills() {
     const present = Array.from(new Set(state.pizzas.map((p) => p.category)))
       .sort((a, b) => catRank(a) - catRank(b));
     const cats = ['tutte', ...present];
     const wrap = document.getElementById('categoryPills');
-    wrap.innerHTML = cats.map((c) =>
-      `<button class="pill ${c === state.category ? 'is-active' : ''}" data-cat="${c}">${CAT_LABEL(c)}</button>`
-    ).join('');
+    wrap.innerHTML = cats.map((c) => {
+      const inner = c === 'tutte' ? 'Tutto il menu' : `${ICON(catIcon(c))} ${catLabel(c)}`;
+      return `<button class="pill ${c === state.category ? 'is-active' : ''}" data-cat="${c}">${inner}</button>`;
+    }).join('');
     wrap.querySelectorAll('.pill').forEach((b) => b.addEventListener('click', () => {
       state.category = b.dataset.cat; renderPills(); renderGrid(true);
     }));
@@ -112,7 +128,7 @@
       p.name.toLowerCase().includes(term) || p.description.toLowerCase().includes(term));
 
     if (list.length === 0) {
-      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><span class="big">😕</span>Nessun prodotto trovato.</div>`;
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><span class="big">${ICON('ic-search')}</span>Nessun prodotto trovato.</div>`;
       return;
     }
     grid.innerHTML = list.map((p, idx) => {
@@ -133,7 +149,7 @@
       const popStyle = animate ? ` style="animation-delay:${Math.min(idx, 12) * 45}ms"` : '';
       return `<article class="pizza-card ${animate ? 'pop' : ''} ${p.available ? '' : 'is-unavailable'}"${popStyle}>
         <div class="pizza-card__media">
-          <span class="pizza-card__cat">${CAT_LABEL(p.category)}</span>
+          <span class="pizza-card__cat">${ICON(catIcon(p.category))} ${catLabel(p.category)}</span>
           <span class="media-emoji">${p.emoji}</span>
           ${img}
           ${p.available ? '' : '<span class="sold-out">Esaurita</span>'}
@@ -174,14 +190,16 @@
     const body = document.getElementById('cartBody');
     const foot = document.getElementById('cartFoot');
     if (state.cart.length === 0) {
-      body.innerHTML = `<div class="empty-state"><span class="big">🛒</span>Il carrello è vuoto.<br />Aggiungi qualche pizza!</div>`;
+      body.innerHTML = `<div class="empty-state"><span class="big">${ICON('ic-cart')}</span>Il carrello è vuoto.<br />Aggiungi qualcosa dal menu!</div>`;
       foot.innerHTML = `<button class="btn btn--ghost btn--block" id="goMenuFromCart">Vai al menu</button>`;
       foot.querySelector('#goMenuFromCart').addEventListener('click', () => { closeCart(); showView('menu'); });
       return;
     }
     body.innerHTML = state.cart.map((i) => `
       <div class="cart-line">
-        <span class="cart-line__emoji">${i.emoji}</span>
+        <span class="cart-line__emoji">${i.image
+          ? `<img src="${i.image.startsWith('http') ? i.image : '/images/' + i.image}" alt="" loading="lazy" onerror="this.remove()" />`
+          : (i.emoji || '')}</span>
         <div class="cart-line__main">
           <strong>${escapeHtml(i.name)}</strong>
           <small>${euro(i.price)} · ${euro(i.price * i.quantity)}</small>
@@ -232,26 +250,25 @@
   function renderCheckoutSummary() {
     const box = document.getElementById('checkoutSummary');
     if (state.cart.length === 0) {
-      box.innerHTML = `<div class="empty-state"><span class="big">🛒</span>Carrello vuoto.<br/>
+      box.innerHTML = `<div class="empty-state"><span class="big">${ICON('ic-cart')}</span>Carrello vuoto.<br/>
         <button class="btn btn--primary" id="backToMenu" style="margin-top:1rem">Torna al menu</button></div>`;
       box.querySelector('#backToMenu').addEventListener('click', () => showView('menu'));
       return;
     }
     const sub = cartSubtotal(), fee = deliveryFee();
-    const typeLabel = { consegna: '🛵 Consegna a domicilio', asporto: '🥡 Asporto', tavolo: '🍽️ Al tavolo' }[state.orderType];
     const feeRow = state.orderType === 'consegna'
       ? `<div class="summary-row"><span>Consegna</span><span>${fee === 0 ? 'Gratis' : euro(fee)}</span></div>`
       : `<div class="summary-row"><span>Servizio</span><span>Gratis</span></div>`;
     box.innerHTML = `
       <h3 style="margin-bottom:1rem">Riepilogo</h3>
-      <div class="summary-row" style="font-weight:600;color:var(--ink)"><span>Modalità</span><span>${typeLabel}</span></div>
+      <div class="summary-row" style="font-weight:600;color:var(--ink)"><span>Modalità</span><span>${orderTypeChip(state.orderType)}</span></div>
       <div style="border-top:1px dashed var(--line);margin:.6rem 0"></div>
       ${state.cart.map((i) => `<div class="summary-row"><span>${i.quantity}× ${escapeHtml(i.name)}</span><span>${euro(i.price * i.quantity)}</span></div>`).join('')}
       <div class="summary-row" style="margin-top:.6rem"><span>Subtotale</span><span>${euro(sub)}</span></div>
       ${feeRow}
       <div class="summary-row total"><span>Totale</span><span class="price">${euro(cartTotal())}</span></div>
       <button class="btn btn--green btn--block btn--lg" id="placeOrderBtn" style="margin-top:1rem">
-        ${state.paymentMethod === 'carta' ? '💳 Paga ' + euro(cartTotal()) : '✅ Conferma ordine'}
+        ${state.paymentMethod === 'carta' ? ICON('ic-card') + ' Paga ' + euro(cartTotal()) : ICON('ic-check') + ' Conferma ordine'}
       </button>
       <button class="btn btn--ghost btn--block btn--sm" id="backMenuBtn" style="margin-top:.5rem">← Aggiungi altro</button>`;
     box.querySelector('#placeOrderBtn').addEventListener('click', placeOrder);
@@ -321,7 +338,7 @@
   // ── Modale pagamento carta ────────────────────────────────────────────────
   function openPayModal() {
     document.getElementById('payError').textContent = '';
-    document.getElementById('payNowBtn').innerHTML = `💳 Paga ${euro(cartTotal())}`;
+    document.getElementById('payNowBtn').innerHTML = `${ICON('ic-card')} Paga ${euro(cartTotal())}`;
     const u = currentUser();
     if (u && !document.getElementById('ccName').value) document.getElementById('ccName').value = u.name || '';
     updateCardPreview();
@@ -393,27 +410,26 @@
     } catch (e) {
       errEl.textContent = e.message || 'Pagamento non riuscito.';
       btn.disabled = false;
-      btn.innerHTML = `💳 Paga ${euro(cartTotal())}`;
+      btn.innerHTML = `${ICON('ic-card')} Paga ${euro(cartTotal())}`;
     }
   }
 
   // ── Conferma ordine ───────────────────────────────────────────────────────
   function renderConfirm(order) {
-    const typeMap = { consegna: '🛵 Consegna a domicilio', asporto: '🥡 Asporto', tavolo: '🍽️ Al tavolo' };
-    const payWhere = order.order_type === 'consegna' ? 'alla consegna' : 'in pizzeria';
+    const payWhere = order.order_type === 'consegna' ? 'alla consegna' : 'al ritiro';
     const paidLabel = order.payment_method === 'carta'
       ? '<span class="badge badge--pagato">Pagato con carta</span>'
       : `<span class="badge badge--contanti">Da pagare ${payWhere}</span>`;
     let detail = '';
-    if (order.order_type === 'consegna') detail = `📍 Consegna a ${escapeHtml(order.delivery_address)}`;
-    else if (order.order_type === 'asporto') detail = `🥡 Ritiro in pizzeria${order.scheduled_time ? ' alle ' + escapeHtml(order.scheduled_time) : ''}`;
-    else detail = `🍽️ Tavolo per ${order.party_size}${order.scheduled_time ? ' · arrivo alle ' + escapeHtml(order.scheduled_time) : ''}`;
+    if (order.order_type === 'consegna') detail = `${ICON('ic-pin')} Consegna a ${escapeHtml(order.delivery_address)}`;
+    else if (order.order_type === 'asporto') detail = `${ICON('ic-bag')} Ritiro in negozio${order.scheduled_time ? ' alle ' + escapeHtml(order.scheduled_time) : ''}`;
+    else detail = `${ICON('ic-table')} Tavolo per ${order.party_size}${order.scheduled_time ? ' · arrivo alle ' + escapeHtml(order.scheduled_time) : ''}`;
     const feeRow = order.delivery_fee > 0
       ? `<div class="summary-row"><span>Consegna</span><span>${euro(order.delivery_fee)}</span></div>` : '';
     document.getElementById('confirmBox').innerHTML = `
-      <div class="confirm__check">✓</div>
+      <div class="confirm__check">${ICON('ic-check')}</div>
       <h2 style="font-size:1.7rem">Ordine confermato!</h2>
-      <p class="muted">Ordine <strong>#${order.id}</strong> — ${typeMap[order.order_type]}</p>
+      <p class="muted">Ordine <strong>#${order.id}</strong> — ${orderTypeChip(order.order_type)}</p>
       <p class="muted" style="font-size:.92rem;margin-top:.2rem">${detail}</p>
       <p style="margin:.8rem 0">${paidLabel}</p>
       <div class="panel" style="max-width:420px;margin:1.2rem auto;text-align:left">
@@ -422,7 +438,7 @@
         <div class="summary-row total"><span>Totale</span><span class="price">${euro(order.total)}</span></div>
       </div>
       <div style="display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap">
-        <button class="btn btn--primary" id="seeOrders">📦 I miei ordini</button>
+        <button class="btn btn--primary" id="seeOrders">${ICON('ic-package')} I miei ordini</button>
         <button class="btn btn--ghost" id="backHome">Torna al menu</button>
       </div>`;
     document.getElementById('seeOrders').addEventListener('click', () => showView('orders'));
@@ -434,13 +450,12 @@
 
   // ── I miei ordini ─────────────────────────────────────────────────────────
   function orderTypeBadge(o) {
-    const m = { consegna: '🛵 Consegna', asporto: '🥡 Asporto', tavolo: '🍽️ Al tavolo' };
-    return `<span class="badge badge--carta" style="background:#eef2ff;color:#3b54b4">${m[o.order_type] || m.consegna}</span>`;
+    return `<span class="badge badge--type">${orderTypeChip(o.order_type)}</span>`;
   }
   function orderTypeLine(o) {
-    if (o.order_type === 'asporto') return `🥡 Asporto${o.scheduled_time ? ' · ritiro alle ' + escapeHtml(o.scheduled_time) : ''}`;
-    if (o.order_type === 'tavolo') return `🍽️ Al tavolo per ${o.party_size}${o.scheduled_time ? ' · alle ' + escapeHtml(o.scheduled_time) : ''}`;
-    return `🛵 Consegna a ${escapeHtml(o.delivery_address || '')}`;
+    if (o.order_type === 'asporto') return `Asporto${o.scheduled_time ? ' · ritiro alle ' + escapeHtml(o.scheduled_time) : ''}`;
+    if (o.order_type === 'tavolo') return `Al tavolo per ${o.party_size}${o.scheduled_time ? ' · alle ' + escapeHtml(o.scheduled_time) : ''}`;
+    return `Consegna a ${escapeHtml(o.delivery_address || '')}`;
   }
 
   function statusLabelFor(orderType, status) {
@@ -464,7 +479,7 @@
   async function loadOrders() {
     const list = document.getElementById('ordersList');
     if (!currentUser()) {
-      list.innerHTML = `<div class="empty-state"><span class="big">🔒</span>Accedi per vedere i tuoi ordini.<br/>
+      list.innerHTML = `<div class="empty-state"><span class="big">${ICON('ic-user')}</span>Accedi per vedere i tuoi ordini.<br/>
         <button class="btn btn--primary" id="goLogin" style="margin-top:1rem">Accedi</button></div>`;
       list.querySelector('#goLogin').addEventListener('click', () => showView('account'));
       return;
@@ -473,7 +488,7 @@
     try {
       const { orders } = await API.get('/api/orders/mine');
       if (orders.length === 0) {
-        list.innerHTML = `<div class="empty-state"><span class="big">📦</span>Non hai ancora ordinato nulla.<br/>
+        list.innerHTML = `<div class="empty-state"><span class="big">${ICON('ic-package')}</span>Non hai ancora ordinato nulla.<br/>
           <button class="btn btn--primary" id="goMenu2" style="margin-top:1rem">Vai al menu</button></div>`;
         list.querySelector('#goMenu2').addEventListener('click', () => showView('menu'));
         return;
@@ -485,7 +500,7 @@
             <div style="display:flex;gap:.4rem;flex-wrap:wrap">
               ${orderTypeBadge(o)}
               <span class="badge badge--${o.status}">${statusLabelFor(o.order_type, o.status)}</span>
-              <span class="badge badge--${o.payment_method}">${o.payment_method === 'carta' ? '💳 Carta' : '💶 Contanti'}</span>
+              <span class="badge badge--${o.payment_method}">${o.payment_method === 'carta' ? ICON('ic-card') + ' Carta' : ICON('ic-cash') + ' Contanti'}</span>
               <span class="badge badge--${o.payment_status}">${PAYMENT_LABELS[o.payment_status]}</span>
             </div>
           </div>
@@ -509,7 +524,7 @@
     if (user) {
       area.innerHTML = `
         <div class="panel">
-          <h2 style="margin-bottom:.3rem">Ciao, ${escapeHtml(user.name)} 👋</h2>
+          <h2 style="margin-bottom:.3rem">Ciao, ${escapeHtml(user.name)}</h2>
           <p class="muted" style="margin-bottom:1.2rem">${escapeHtml(user.email)}</p>
           <div class="field"><label>Nome</label><input id="pfName" value="${escapeHtml(user.name)}" /></div>
           <div class="field"><label>Indirizzo predefinito</label><input id="pfAddr" value="${escapeHtml(user.address || '')}" placeholder="Via, civico, città" /></div>
@@ -517,7 +532,7 @@
           <button class="btn btn--primary" id="saveProfile">Salva modifiche</button>
           <button class="btn btn--ghost" id="logoutBtn" style="margin-left:.5rem">Esci</button>
           <hr style="border:0;border-top:1px solid var(--line);margin:1.4rem 0" />
-          <button class="btn btn--green btn--block" id="goOrders">📦 Vedi i miei ordini</button>
+          <button class="btn btn--green btn--block" id="goOrders">${ICON('ic-package')} Vedi i miei ordini</button>
         </div>`;
       area.querySelector('#saveProfile').addEventListener('click', saveProfile);
       area.querySelector('#logoutBtn').addEventListener('click', logout);

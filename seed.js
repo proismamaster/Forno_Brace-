@@ -7,7 +7,7 @@ const PIZZE = [
   // ── KEBAB & TURKISH SPECIALITIES ──────────────────────────────────────────
   { name: 'Panino Kebab', price: 600, category: 'kebab', emoji: '🥙', image: 'kebab-panino.jpg',
     description: 'Carne artigianale, insalata fresca, pomodoro, cipolla e salse yogurt/piccante.' },
-  { name: 'Piadina Kebab', price: 600, category: 'kebab', emoji: '🌯', image: 'kebab-piadina.jpg',
+  { name: 'Piadina Kebab', price: 600, category: 'kebab', emoji: '🌯', image: 'durum.jpg',
     description: 'Piadina arrotolata con carne kebab, verdure croccanti e salse della casa.' },
   { name: 'Piatto Kebab (Döner)', price: 900, category: 'kebab', emoji: '🍽️', image: 'kebab-piatto.jpg',
     description: 'Abbondante porzione di carne kebab servita con patatine, insalata e salse.' },
@@ -29,12 +29,12 @@ const PIZZE = [
     description: 'Mozzarella, gorgonzola, fontina e parmigiano.' },
 
   // ── SFIZI & CONTORNI ──────────────────────────────────────────────────────
-  { name: 'Falafel (Pezzo)', price: 100, category: 'contorni', emoji: '🧆', image: 'vegetariana.jpg',
+  { name: 'Falafel (Pezzo)', price: 100, category: 'contorni', emoji: '🧆', image: 'falafel.jpg',
     description: 'Polpetta di ceci speziata e fritta.' },
   { name: 'Patatine Fritte', price: 300, category: 'contorni', emoji: '🍟', image: 'patatine.jpg',
     description: 'Porzione media di patatine croccanti.' },
-  { name: 'Alette di Pollo (4pz)', price: 450, category: 'contorni', emoji: '🍗', image: 'bufalina.jpg',
-    description: 'Sfiziose alette di pollo fritte.' },
+  { name: 'Alette di Pollo (4pz)', price: 450, category: 'contorni', emoji: '🍗', image: 'wings.jpg',
+    description: 'Sfiziose alette di pollo grigliate.' },
 ];
 
 function hash(pwd) {
