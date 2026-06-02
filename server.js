@@ -365,7 +365,7 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(config.PORT, () => {
-  console.log('\n🍕  Pizzeria Bella Napoli');
+  console.log('\n🌋  Pizzeria Vulcano · Lodi Vecchio');
   console.log(`    Sito utente:  http://localhost:${config.PORT}`);
   console.log(`    Pannello admin: http://localhost:${config.PORT}/admin`);
   console.log(`    Admin: ${config.ADMIN_EMAIL} / ${config.ADMIN_PASSWORD}`);

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin · Pizzeria Bella Napoli</title>
+  <title>Admin · Pizzeria Vulcano</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👨‍🍳</text></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,7 +14,7 @@
   <!-- ── Topbar ─────────────────────────────────────────────────────────── -->
   <header class="admin-topbar">
     <div class="container admin-topbar__inner">
-      <span class="brand"><span class="logo">👨‍🍳</span><span>Bella Napoli<small>Pannello gestione</small></span></span>
+      <span class="brand"><span class="logo">🌋</span><span>Pizzeria Vulcano<small>Pannello gestione</small></span></span>
       <div class="spacer"></div>
       <span class="who" id="adminWho"></span>
       <a class="nav__link" href="/" style="color:#fff">↗ Sito</a>
@@ -91,29 +91,39 @@
           <div class="field"><label>Prezzo (€)</label><input id="pzPrice" type="number" step="0.50" min="0" placeholder="6.50" /></div>
           <div class="field"><label>Categoria</label>
             <select id="pzCat">
-              <option value="classiche">Classiche</option>
-              <option value="speciali">Speciali</option>
-              <option value="bianche">Bianche</option>
-              <option value="vegetariane">Vegetariane</option>
+              <option value="pizze">Pizze</option>
+              <option value="kebab">Kebab</option>
+              <option value="hamburger">Hamburger</option>
+              <option value="contorni">Contorni</option>
             </select>
           </div>
         </div>
         <div class="field">
-          <label for="pzImage">Foto della pizza</label>
+          <label for="pzImage">Foto del prodotto</label>
           <select id="pzImage">
             <option value="">— Nessuna (usa emoji) —</option>
-            <option value="margherita.jpg">Margherita (rossa, basilico)</option>
-            <option value="marinara.jpg">Marinara (semplice rossa)</option>
-            <option value="diavola.jpg">Diavola (salame piccante)</option>
-            <option value="capricciosa.jpg">Capricciosa (mista)</option>
-            <option value="quattro-stagioni.jpg">Quattro Stagioni</option>
-            <option value="funghi.jpg">Funghi e verdure</option>
-            <option value="boscaiola.jpg">Boscaiola (salsiccia)</option>
-            <option value="bufalina.jpg">Bufalina</option>
-            <option value="quattro-formaggi.jpg">Quattro Formaggi (bianca)</option>
-            <option value="bianca.jpg">Bianca</option>
-            <option value="vegetariana.jpg">Vegetariana</option>
-            <option value="pizza-hot.jpg">Pizza appena sfornata</option>
+            <optgroup label="Pizze">
+              <option value="margherita.jpg">Margherita (rossa, basilico)</option>
+              <option value="marinara.jpg">Marinara (semplice rossa)</option>
+              <option value="diavola.jpg">Diavola / Vulcano (piccante)</option>
+              <option value="capricciosa.jpg">Capricciosa (mista)</option>
+              <option value="quattro-stagioni.jpg">Quattro Stagioni</option>
+              <option value="funghi.jpg">Funghi e verdure</option>
+              <option value="boscaiola.jpg">Boscaiola (salsiccia)</option>
+              <option value="bufalina.jpg">Bufalina</option>
+              <option value="quattro-formaggi.jpg">Quattro Formaggi (bianca)</option>
+              <option value="bianca.jpg">Bianca / patate</option>
+              <option value="vegetariana.jpg">Vegetariana</option>
+              <option value="pizza-hot.jpg">Pizza appena sfornata</option>
+            </optgroup>
+            <optgroup label="Kebab / Hamburger / Contorni">
+              <option value="kebab-panino.jpg">Panino kebab</option>
+              <option value="kebab-piadina.jpg">Piadina kebab</option>
+              <option value="kebab-piatto.jpg">Piatto kebab (spiedini)</option>
+              <option value="doner.jpg">Kebab alla fiamma</option>
+              <option value="hamburger.jpg">Hamburger</option>
+              <option value="patatine.jpg">Patatine fritte</option>
+            </optgroup>
           </select>
         </div>
         <label class="muted" style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem">

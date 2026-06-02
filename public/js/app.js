@@ -63,13 +63,15 @@
     const v = document.querySelector('.view:not(.hidden)');
     return v ? v.dataset.view : 'menu';
   }
-  function showView(name) {
+  function showView(name, opts = {}) {
+    const changed = currentView() !== name;
     document.querySelectorAll('.view').forEach((v) => v.classList.toggle('hidden', v.dataset.view !== name));
     document.querySelectorAll('[data-nav]').forEach((el) =>
       el.classList.toggle('is-active', el.dataset.nav === name));
     document.querySelectorAll('.mobile-nav button[data-nav]').forEach((b) =>
       b.classList.toggle('is-active', b.dataset.nav === name));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Scorri in cima solo se cambiamo davvero vista (così lo scroll verso un'ancora non confligge).
+    if (changed && !opts.noScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
     if (name === 'orders') loadOrders();
     if (name === 'account') renderAccount();
     if (name === 'checkout') renderCheckoutSummary();
@@ -83,20 +85,25 @@
   }
 
   // ── Menu ──────────────────────────────────────────────────────────────────
-  const CAT_LABEL = (c) => c.charAt(0).toUpperCase() + c.slice(1);
+  const CAT_ORDER = ['pizze', 'kebab', 'hamburger', 'contorni'];
+  const CAT_LABELS = { pizze: '🍕 Pizze', kebab: '🥙 Kebab', hamburger: '🍔 Hamburger', contorni: '🍟 Contorni', tutte: 'Tutto il menu' };
+  const CAT_LABEL = (c) => CAT_LABELS[c] || (c.charAt(0).toUpperCase() + c.slice(1));
+  const catRank = (c) => { const i = CAT_ORDER.indexOf(c); return i === -1 ? 99 : i; };
 
   function renderPills() {
-    const cats = ['tutte', ...Array.from(new Set(state.pizzas.map((p) => p.category)))];
+    const present = Array.from(new Set(state.pizzas.map((p) => p.category)))
+      .sort((a, b) => catRank(a) - catRank(b));
+    const cats = ['tutte', ...present];
     const wrap = document.getElementById('categoryPills');
     wrap.innerHTML = cats.map((c) =>
       `<button class="pill ${c === state.category ? 'is-active' : ''}" data-cat="${c}">${CAT_LABEL(c)}</button>`
     ).join('');
     wrap.querySelectorAll('.pill').forEach((b) => b.addEventListener('click', () => {
-      state.category = b.dataset.cat; renderPills(); renderGrid();
+      state.category = b.dataset.cat; renderPills(); renderGrid(true);
     }));
   }
 
-  function renderGrid() {
+  function renderGrid(animate = false) {
     const grid = document.getElementById('pizzaGrid');
     const term = state.search.trim().toLowerCase();
     let list = state.pizzas;
@@ -105,10 +112,10 @@
       p.name.toLowerCase().includes(term) || p.description.toLowerCase().includes(term));
 
     if (list.length === 0) {
-      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><span class="big">😕</span>Nessuna pizza trovata.</div>`;
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><span class="big">😕</span>Nessun prodotto trovato.</div>`;
       return;
     }
-    grid.innerHTML = list.map((p) => {
+    grid.innerHTML = list.map((p, idx) => {
       const inCart = state.cart.find((i) => i.pizza_id === p.id);
       const control = inCart
         ? `<div class="stepper" data-id="${p.id}">
@@ -123,9 +130,10 @@
       const img = imgPath
         ? `<img src="${escapeHtml(imgPath)}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="this.remove()" />`
         : '';
-      return `<article class="pizza-card ${p.available ? '' : 'is-unavailable'}">
+      const popStyle = animate ? ` style="animation-delay:${Math.min(idx, 12) * 45}ms"` : '';
+      return `<article class="pizza-card ${animate ? 'pop' : ''} ${p.available ? '' : 'is-unavailable'}"${popStyle}>
         <div class="pizza-card__media">
-          <span class="pizza-card__cat">${escapeHtml(p.category)}</span>
+          <span class="pizza-card__cat">${CAT_LABEL(p.category)}</span>
           <span class="media-emoji">${p.emoji}</span>
           ${img}
           ${p.available ? '' : '<span class="sold-out">Esaurita</span>'}
@@ -627,7 +635,7 @@
     document.getElementById('closeCart').addEventListener('click', closeCart);
     document.getElementById('overlay').addEventListener('click', closeCart);
     document.getElementById('searchInput').addEventListener('input', (e) => {
-      state.search = e.target.value; renderGrid();
+      state.search = e.target.value; renderGrid(true);
     });
 
     // Metodi di pagamento
@@ -645,11 +653,15 @@
       opt.addEventListener('click', () => setOrderType(opt.dataset.type)));
     setOrderType('consegna');
 
-    // Pulsanti della hero che scorrono alle sezioni
+    // Pulsanti/link che scorrono alle sezioni della homepage
     document.querySelectorAll('[data-scroll]').forEach((b) =>
-      b.addEventListener('click', () => {
-        const el = document.getElementById(b.dataset.scroll);
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      b.addEventListener('click', (e) => {
+        e.preventDefault();
+        showView('menu', { noScroll: true });
+        requestAnimationFrame(() => {
+          const el = document.getElementById(b.dataset.scroll);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
       }));
 
     setupCardInputs();
@@ -661,8 +673,10 @@
       try {
         const [cfg, pizzasData] = await Promise.all([API.get('/api/config'), API.get('/api/pizzas')]);
         state.config = cfg;
-        state.pizzas = pizzasData.pizzas;
-        console.log('✅ Menu caricato:', state.pizzas.length, 'pizze');
+        // Ordina per categoria (pizze, kebab, hamburger, contorni) e poi per nome.
+        state.pizzas = pizzasData.pizzas.sort((a, b) =>
+          catRank(a.category) - catRank(b.category) || a.name.localeCompare(b.name));
+        console.log('✅ Menu caricato:', state.pizzas.length, 'prodotti');
         break;
       } catch (e) {
         retries--;
@@ -673,11 +687,55 @@
     }
 
     renderPills();
-    renderGrid();
+    renderGrid(true);
     refreshCartUI();
     await refreshUser();
     updateAuthUI();
     showView('menu');
+    setupAnimations();
+  }
+
+  // ── Animazioni: reveal allo scroll + header + mappa lazy ───────────────────
+  function setupAnimations() {
+    const header = document.querySelector('.site-header');
+    if (header) {
+      const onScroll = () => header.classList.toggle('is-scrolled', window.scrollY > 24);
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    }
+
+    // La mappa Google si carica solo quando ci si avvicina ai contatti (più veloce).
+    const mapFrame = document.querySelector('.contact__map iframe[data-src]');
+    const loadMap = () => { if (mapFrame && !mapFrame.src) mapFrame.src = mapFrame.dataset.src; };
+
+    // Carica la mappa al primo scroll dell'utente (affidabile e leggero).
+    const onceScrollMap = () => { loadMap(); window.removeEventListener('scroll', onceScrollMap); };
+    window.addEventListener('scroll', onceScrollMap, { passive: true, once: true });
+
+    const els = document.querySelectorAll('[data-reveal]');
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const hasIO = 'IntersectionObserver' in window;
+    const revealAll = () => els.forEach((e) => e.classList.add('revealed'));
+
+    if (reduce || !hasIO) { revealAll(); loadMap(); return; }
+
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        if (en.isIntersecting) { en.target.classList.add('revealed'); io.unobserve(en.target); }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    els.forEach((e) => io.observe(e));
+
+    // Rete di sicurezza: se l'observer non scatta (ambienti particolari),
+    // mostra comunque tutto dopo poco, così il contenuto non resta mai invisibile.
+    setTimeout(revealAll, 1600);
+
+    if (mapFrame) {
+      const mapIo = new IntersectionObserver((entries) => {
+        if (entries.some((e) => e.isIntersecting)) { loadMap(); mapIo.disconnect(); }
+      }, { rootMargin: '400px' });
+      mapIo.observe(mapFrame);
+    }
   }
 
   document.addEventListener('DOMContentLoaded', init);

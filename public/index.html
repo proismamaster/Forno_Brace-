@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pizzeria Vulcano Lodi Vecchio — Pizza e Kebab</title>
   <meta name="description" content="Ordina la tua pizza o il tuo kebab preferito alla Pizzeria Vulcano di Lodi Vecchio. Consegna a domicilio e asporto." />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍕</text></svg>" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌋</text></svg>" />
+  <meta name="theme-color" content="#1a0f0a" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -21,9 +22,10 @@
       </a>
       <nav class="nav">
         <span class="nav__link" data-nav="menu">Menu</span>
+        <span class="nav__link" data-scroll="contatti">Contatti</span>
         <span class="nav__link" data-nav="orders">I miei ordini</span>
         <span class="nav__link" data-nav="account" id="navAccount">Accedi</span>
-        <a class="nav__link" href="/admin" title="Area riservata">Admin</a>
+        <a class="nav__link nav__link--admin" href="/admin" title="Area riservata">Admin</a>
       </nav>
       <button class="cart-btn" id="cartBtn" title="Carrello" aria-label="Apri carrello">
         🛒<span class="cart-badge hidden" id="cartBadge">0</span>
@@ -35,75 +37,105 @@
     <!-- ── Vista MENU (homepage pubblica) ───────────────────────────────── -->
     <section class="view" data-view="menu">
       <div class="hero">
-        <div class="hero__card">
-          <h1>Pizzeria Vulcano: Il gusto che esplode.</h1>
-          <p>Le migliori pizze, kebab e hamburger di Lodi Vecchio. Ingredienti di qualità, servizio rapido e consegna a domicilio sempre calda.</p>
-          <div class="hero__badges">
-            <span>🍕 Pizza Artigianale</span>
-            <span>🥙 Specialità Kebab</span>
-            <span>📍 Via Libertà, 27</span>
+        <!-- Insegna reale della pizzeria: /images/insegna.jpg.
+             Se il file non c'è ancora, viene mostrato un fallback elegante. -->
+        <div class="insegna" id="insegna">
+          <img class="insegna__img" src="/images/insegna.jpg" alt="Pizzeria Vulcano - Lodi Vecchio"
+               onerror="var t=['/images/insegna.jpeg','/images/insegna.png','/images/insegna.webp'];var i=+(this.dataset.i||0);if(i&lt;t.length){this.dataset.i=i+1;this.src=t[i];}else{document.getElementById('insegna').classList.add('insegna--fallback');this.remove();}" />
+          <div class="insegna__fallback">
+            <span class="insegna__kicker">🌋 Lodi Vecchio · Via Libertà 27</span>
+            <h1>Pizzeria Vulcano</h1>
+            <p>Il gusto che esplode — pizze, kebab e hamburger</p>
           </div>
+        </div>
+        <div class="hero__bar">
+          <p class="hero__tag">🍕 Pizza · 🥙 Kebab · 🍔 Hamburger — consegna, asporto o al tavolo</p>
           <div class="hero__cta">
-            <button class="btn btn--primary btn--lg" data-scroll="menuAnchor">Ordina ora</button>
-            <button class="btn btn--ghost btn--lg" data-scroll="storyAnchor" style="color:#fff;border-color:rgba(255,255,255,.45)">La nostra storia</button>
+            <button class="btn btn--primary btn--lg" data-scroll="menuAnchor">🍕 Ordina ora</button>
+            <button class="btn btn--ghost btn--lg hero__bar-ghost" data-scroll="contatti">📍 Dove siamo</button>
           </div>
         </div>
       </div>
 
-      <div class="highlights">
-        <div class="highlight"><div class="hi-ico">🔥</div><strong>Forno a legna</strong><small>Cottura a 430°C in 90 secondi</small></div>
-        <div class="highlight"><div class="hi-ico">🛵</div><strong>Consegna rapida</strong><small>A domicilio in 30 minuti</small></div>
-        <div class="highlight"><div class="hi-ico">🥡</div><strong>Asporto & tavolo</strong><small>Ritiri tu o mangi da noi</small></div>
-        <div class="highlight"><div class="hi-ico">💳</div><strong>Pagamento facile</strong><small>Carta o contanti</small></div>
+      <div class="highlights" data-reveal>
+        <div class="highlight"><div class="hi-ico">🍕</div><strong>Pizza & Kebab</strong><small>Specialità cotte al momento</small></div>
+        <div class="highlight"><div class="hi-ico">🛵</div><strong>Consegna a domicilio</strong><small>A casa tua, sempre calda</small></div>
+        <div class="highlight"><div class="hi-ico">🥡</div><strong>Asporto & sul posto</strong><small>Ritiri tu o mangi da noi</small></div>
+        <div class="highlight"><div class="hi-ico">💳</div><strong>Paghi come vuoi</strong><small>Carta o contanti</small></div>
       </div>
 
-      <div class="section-head" id="menuAnchor">
-        <span class="kicker">Il forno a legna</span>
+      <div class="section-head" id="menuAnchor" data-reveal>
+        <span class="kicker">Pizza · Kebab · Hamburger</span>
         <h2>Il nostro menu</h2>
-        <p>18 pizze preparate al momento. Sfoglia liberamente: per ordinare basta creare un account in pochi secondi.</p>
+        <p>Tutte le nostre specialità, preparate al momento. Sfoglia il menu liberamente: per ordinare basta creare un account in pochi secondi.</p>
       </div>
 
-      <div class="toolbar">
+      <div class="toolbar" data-reveal>
         <div class="pills" id="categoryPills"></div>
         <div class="search">
-          <input type="search" id="searchInput" placeholder="Cerca una pizza…" />
+          <input type="search" id="searchInput" placeholder="Cerca nel menu…" />
         </div>
       </div>
 
       <div class="grid" id="pizzaGrid"></div>
 
-      <!-- Storia / pizzaioli -->
-      <div class="section-head" id="storyAnchor">
+      <!-- Storia / chi siamo -->
+      <div class="section-head" id="storyAnchor" data-reveal>
         <span class="kicker">Chi siamo</span>
-        <h2>Tre generazioni di pizzaioli</h2>
+        <h2>Il gusto che fa eruzione 🌋</h2>
       </div>
-      <div class="story">
+      <div class="story" data-reveal>
         <div class="story__text">
-          <p>Tutto è iniziato nel 1985, quando nonno Antonio aprì un piccolo forno nel cuore di Napoli. Da allora impastiamo a mano, ogni giorno, con la stessa pasta madre e lo stesso forno a legna.</p>
-          <p>I nostri pizzaioli selezionano il pomodoro San Marzano, la mozzarella di bufala campana e il basilico fresco. Niente scorciatoie: solo passione e materie prime vere.</p>
-          <p class="story__sign">— La famiglia Esposito</p>
+          <p>La <strong>Pizzeria Vulcano</strong> è il punto di riferimento di <strong>Lodi Vecchio</strong> per chi ama mangiare bene e senza pensieri. Pizze fragranti, kebab succosi e hamburger generosi: tutto preparato al momento, con ingredienti freschi e tanta passione.</p>
+          <p>La nostra pizza simbolo, la <strong>Vulcano</strong>, è un'esplosione di salame piccante, ’nduja e peperoncino per chi non ha paura del fuoco. 🔥 E se preferisci, c’è sempre la classica Margherita o un kebab come si deve.</p>
+          <p>Ti aspettiamo in <strong>Via Libertà 27</strong>: vieni a trovarci, ordina d’asporto o fattela portare a casa, ancora calda.</p>
+          <p class="story__sign">— Pizzeria Vulcano, Lodi Vecchio</p>
         </div>
         <div class="story__media">
-          <img class="ph-main" src="/images/pizzaiolo.jpg" alt="Il nostro pizzaiolo al lavoro" loading="lazy" />
-          <img class="ph-float" src="/images/forno.jpg" alt="Il forno a legna" loading="lazy" />
+          <img class="ph-main" src="/images/pizza-hot.jpg" alt="La nostra pizza appena sfornata" loading="lazy" />
+          <img class="ph-float" src="/images/doner.jpg" alt="Il nostro kebab" loading="lazy" />
         </div>
       </div>
 
-      <div class="gallery">
-        <figure><img src="/images/forno.jpg" alt="Forno a legna" loading="lazy" /><figcaption>🔥 Il forno a legna</figcaption></figure>
-        <figure><img src="/images/pizza-hot.jpg" alt="Pizza appena sfornata" loading="lazy" /><figcaption>🍕 Appena sfornata</figcaption></figure>
-        <figure><img src="/images/sala.jpg" alt="La nostra sala" loading="lazy" /><figcaption>🍽️ La nostra sala</figcaption></figure>
+      <div class="gallery" data-reveal>
+        <figure><img src="/images/forno.jpg" alt="La nostra pizza" loading="lazy" /><figcaption>🍕 Le nostre pizze</figcaption></figure>
+        <figure><img src="/images/doner.jpg" alt="Kebab alla fiamma" loading="lazy" /><figcaption>🔥 Kebab alla fiamma</figcaption></figure>
+        <figure><img src="/images/sala.jpg" alt="Il nostro locale" loading="lazy" /><figcaption>🍽️ Da noi a Lodi Vecchio</figcaption></figure>
       </div>
 
       <!-- Come funziona -->
-      <div class="section-head">
+      <div class="section-head" data-reveal>
         <span class="kicker">Semplice e veloce</span>
         <h2>Come funziona</h2>
       </div>
-      <div class="steps">
-        <div class="step"><div class="step__num">1</div><h3>Scegli le pizze</h3><p>Aggiungi al carrello le tue preferite dal menu.</p></div>
-        <div class="step"><div class="step__num">2</div><h3>Consegna, asporto o tavolo</h3><p>Decidi se riceverle a casa, ritirarle o mangiare da noi.</p></div>
+      <div class="steps" data-reveal>
+        <div class="step"><div class="step__num">1</div><h3>Scegli dal menu</h3><p>Pizza, kebab o hamburger: aggiungi al carrello quello che vuoi.</p></div>
+        <div class="step"><div class="step__num">2</div><h3>Consegna, asporto o tavolo</h3><p>Decidi se riceverlo a casa, ritirarlo o mangiare da noi.</p></div>
         <div class="step"><div class="step__num">3</div><h3>Paga e gusta</h3><p>Carta o contanti. Pensiamo a tutto noi!</p></div>
+      </div>
+
+      <!-- Contatti + mappa -->
+      <div class="section-head" id="contatti" data-reveal>
+        <span class="kicker">Dove siamo</span>
+        <h2>Vieni a trovarci</h2>
+      </div>
+      <div class="contact" data-reveal>
+        <div class="contact__info">
+          <div class="contact__row"><span class="ci-ico">📍</span><div><strong>Indirizzo</strong><br>Via Libertà 27, 26855 Lodi Vecchio (LO)</div></div>
+          <div class="contact__row"><span class="ci-ico">📞</span><div><strong>Telefono</strong><br><a href="tel:+390371753565">0371 753565</a> · <a href="tel:+393393134259">339 3134259</a></div></div>
+          <div class="contact__row"><span class="ci-ico">🕒</span><div><strong>Orari</strong><br>Lun–Sab 11:00–14:30 · 18:00–23:30<br>Domenica 18:00–23:30</div></div>
+          <div class="contact__social">
+            <a class="social-btn social-btn--ig" href="https://www.instagram.com/pizzeriavulcanolodivecchio/" target="_blank" rel="noopener">📸 Instagram</a>
+            <a class="social-btn social-btn--fb" href="https://www.facebook.com/p/Volcano-pizza-100063838898936/" target="_blank" rel="noopener">👍 Facebook</a>
+            <a class="social-btn" href="https://www.google.com/maps/dir/?api=1&destination=Pizzeria+Vulcano+Via+Libert%C3%A0+27+Lodi+Vecchio" target="_blank" rel="noopener">🧭 Indicazioni</a>
+          </div>
+        </div>
+        <div class="contact__map">
+          <iframe
+            title="Mappa Pizzeria Vulcano"
+            data-src="https://www.google.com/maps?q=Pizzeria%20Vulcano%20Via%20Libert%C3%A0%2027%20Lodi%20Vecchio&output=embed"
+            loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
       </div>
     </section>
 
@@ -132,7 +164,7 @@
           </div>
           <div class="field" data-for="consegna">
             <label for="dAddr">Indirizzo di consegna</label>
-            <input id="dAddr" type="text" placeholder="Via Roma 12, Napoli" />
+            <input id="dAddr" type="text" placeholder="Via Garibaldi 5, Lodi Vecchio" />
           </div>
           <div class="field" data-for="consegna asporto">
             <label for="dPhone">Telefono</label>
@@ -187,7 +219,7 @@
     </section>
   </main>
 
-  <footer class="site-footer" id="storyAnchor">
+  <footer class="site-footer">
     <div class="container" style="text-align:left">
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2rem">
         <div>
@@ -198,21 +230,22 @@
           <h4 style="color:#fff;margin-bottom:.5rem">Contatti</h4>
           <p class="muted" style="font-size:.9rem">
             📍 Via Libertà, 27<br>
-            Lodi Vecchio (LO)<br>
-            📞 0371 753565
+            26855 Lodi Vecchio (LO)<br>
+            📞 <a href="tel:+390371753565" style="color:inherit">0371 753565</a><br>
+            📱 <a href="tel:+393393134259" style="color:inherit">339 3134259</a>
           </p>
         </div>
         <div>
           <h4 style="color:#fff;margin-bottom:.5rem">Orari</h4>
           <p class="muted" style="font-size:.9rem">
-            Tutti i giorni<br>
-            11:00 – 15:00<br>
-            18:00 – 23:00
+            Lun–Sab 11:00–14:30<br>
+            18:00–23:30<br>
+            Domenica 18:00–23:30
           </p>
         </div>
       </div>
       <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid rgba(255,255,255,.1);text-align:center">
-        <p class="muted" style="font-size:.8rem">&copy; 2024 Pizzeria Vulcano Lodi Vecchio. Progetto dimostrativo.</p>
+        <p class="muted" style="font-size:.8rem">&copy; 2026 Pizzeria Vulcano · Via Libertà 27, Lodi Vecchio (LO) · Sito dimostrativo</p>
       </div>
     </div>
   </footer>

@@ -1,7 +1,8 @@
-# 🍕 Pizzeria Bella Napoli
+# 🌋 Pizzeria Vulcano — Lodi Vecchio
 
-Applicazione web completa per una pizzeria, con **lato cliente** (ordini e pagamento)
-e **lato amministratore** (gestione ordini e menu). Funziona su **telefono e PC**.
+Sito completo per la **Pizzeria Vulcano** (Via Libertà 27, Lodi Vecchio), con **lato cliente**
+(ordini e pagamento) e **lato amministratore** (gestione ordini e menu). Pizze, kebab e hamburger,
+con consegna a domicilio, asporto o servizio al tavolo. Funziona su **telefono e PC**.
 
 - Backend: **Node.js + Express**
 - Database: **SQLite** (file locale `pizzeria.db`, nessuna installazione esterna)
@@ -27,7 +28,7 @@ Poi apri il browser:
 | 👨‍🍳 Pannello admin | http://localhost:3000/admin |
 
 Al primo avvio il database viene creato e popolato automaticamente con
-18 pizze, un account admin e un utente demo.
+il menu completo (pizze, kebab, hamburger, contorni), un account admin e un utente demo.
 
 ### Account già pronti
 
