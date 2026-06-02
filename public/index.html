@@ -41,18 +41,19 @@
              Se il file non c'è ancora, viene mostrato un fallback elegante. -->
         <div class="insegna" id="insegna">
           <img class="insegna__img" src="/images/insegna.jpg" alt="Pizzeria Vulcano - Lodi Vecchio"
+               onload="this.closest('.insegna').style.setProperty('--insegna-bg','url('+this.currentSrc+')')"
                onerror="var t=['/images/insegna.jpeg','/images/insegna.png','/images/insegna.webp'];var i=+(this.dataset.i||0);if(i&lt;t.length){this.dataset.i=i+1;this.src=t[i];}else{document.getElementById('insegna').classList.add('insegna--fallback');this.remove();}" />
           <div class="insegna__fallback">
             <span class="insegna__kicker">🌋 Lodi Vecchio · Via Libertà 27</span>
             <h1>Pizzeria Vulcano</h1>
             <p>Il gusto che esplode — pizze, kebab e hamburger</p>
           </div>
-        </div>
-        <div class="hero__bar">
-          <p class="hero__tag">🍕 Pizza · 🥙 Kebab · 🍔 Hamburger — consegna, asporto o al tavolo</p>
-          <div class="hero__cta">
-            <button class="btn btn--primary btn--lg" data-scroll="menuAnchor">🍕 Ordina ora</button>
-            <button class="btn btn--ghost btn--lg hero__bar-ghost" data-scroll="contatti">📍 Dove siamo</button>
+          <div class="insegna__overlay">
+            <span class="insegna__loc">🍕 Pizza · 🥙 Kebab · 🍔 Hamburger — Via Libertà 27, Lodi Vecchio</span>
+            <div class="hero__cta">
+              <button class="btn btn--primary btn--lg" data-scroll="menuAnchor">🍕 Ordina ora</button>
+              <button class="btn btn--ghost btn--lg insegna__ghost" data-scroll="contatti">📍 Dove siamo</button>
+            </div>
           </div>
         </div>
       </div>
