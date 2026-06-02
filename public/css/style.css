@@ -3,19 +3,19 @@
    Palette calda "pizza": pomodoro, basilico, mozzarella, crosta dorata.
    ========================================================================== */
 :root {
-  /* Tema "Vulcano": lava, fuoco e crosta dorata */
-  --tomato: #e23610;
-  --tomato-dark: #b3260a;
-  --basil: #2f8f4e;
-  --basil-dark: #246b3b;
-  --crust: #ff9e2c;
-  --crust-deep: #e07b18;
+  /* Tema "Istanbul": smeraldo, oro e rubino */
+  --tomato: #d42027;
+  --tomato-dark: #a0181d;
+  --basil: #0a6b4a;
+  --basil-dark: #064530;
+  --crust: #d49a20;
+  --crust-deep: #b07e15;
   --cream: #fff7ee;
   --paper: #fffdfa;
   --ink: #1d120b;
   --ink-soft: #6e5d4f;
   --line: #f0e2d0;
-  --lava: linear-gradient(135deg, #ffae1a 0%, #e8491d 48%, #b3170a 100%);
+  --lava: linear-gradient(135deg, #0a6b4a 0%, #d49a20 50%, #d42027 100%);
   --ember: #ff7a18;
   --shadow: 0 10px 30px -12px rgba(80, 45, 20, .25);
   --shadow-sm: 0 4px 14px -8px rgba(80, 45, 20, .35);
@@ -570,7 +570,7 @@ img { max-width: 100%; display: block; }
    immagine sfocata e scurita, così riempie i lati in modo elegante. */
 .insegna {
   position: relative; border-radius: 24px; overflow: hidden; box-shadow: var(--shadow);
-  background: linear-gradient(270deg, #1a0f0a, #301408, #1a0f0a);
+  background: linear-gradient(270deg, #064530, #b07e15, #a0181d);
   background-size: 200% 200%;
   animation: heroUp .7s both cubic-bezier(.2,.7,.2,1), lavaFlow 8s ease infinite;
   isolation: isolate;
