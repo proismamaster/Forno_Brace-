@@ -11,17 +11,71 @@
     pollTimer: null,
   };
 
-  // ── Suono di notifica (Web Audio, nessun file esterno) ────────────────────
-  function beep() {
+  const ORDER_TYPE_TEXT = { consegna: 'Consegna a domicilio', asporto: 'Asporto', tavolo: 'Al tavolo' };
+  const BASE_TITLE = 'Admin · Bella Istanbul';
+
+  // ── Suono di notifica: campanello a 3 note (Web Audio, nessun file) ────────
+  function notifySound() {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.type = 'sine'; o.frequency.value = 880; g.gain.value = 0.05;
-      o.start();
-      o.frequency.setValueAtTime(660, ctx.currentTime + 0.13);
-      setTimeout(() => { o.stop(); ctx.close(); }, 260);
+      const now = ctx.currentTime;
+      [880, 1108.7, 1318.5].forEach((f, i) => {       // A5 · C#6 · E6 (accordo)
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sine'; o.frequency.value = f;
+        const t = now + i * 0.15;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.13, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.34);
+        o.start(t); o.stop(t + 0.36);
+      });
+      setTimeout(() => ctx.close(), 1300);
     } catch (_) {}
+  }
+
+  // ── Notifiche desktop del browser ─────────────────────────────────────────
+  function ensureNotificationPermission() {
+    try {
+      if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+    } catch (_) {}
+  }
+  function desktopNotify(title, body) {
+    try {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        const n = new Notification(title, { body, icon: '/images/insegna.jpg', tag: 'bella-istanbul-order', renotify: true });
+        n.onclick = () => { window.focus(); n.close(); };
+      }
+    } catch (_) {}
+  }
+
+  // ── Titolo che lampeggia quando arrivano ordini e la scheda non è attiva ──
+  let unseen = 0, blinkTimer = null;
+  function startTitleBlink() {
+    if (blinkTimer) return;
+    let on = false;
+    blinkTimer = setInterval(() => {
+      document.title = on ? BASE_TITLE : `🔔 (${unseen}) Nuovo ordine!`;
+      on = !on;
+    }, 1000);
+  }
+  function stopTitleBlink() {
+    if (blinkTimer) { clearInterval(blinkTimer); blinkTimer = null; }
+    document.title = BASE_TITLE; unseen = 0;
+  }
+  window.addEventListener('focus', stopTitleBlink);
+
+  // ── Notifica completa all'arrivo di nuovi ordini ──────────────────────────
+  function notifyNewOrders(newOrders) {
+    const n = newOrders.length;
+    notifySound();
+    const first = newOrders[0];
+    const extra = n === 1 ? `#${first.id} · ${euro(first.total)}` : '';
+    toast(`🔔 ${n} nuovo ordine${n > 1 ? 'i' : ''}! ${extra}`, 'success');
+    desktopNotify(
+      n === 1 ? `Nuovo ordine #${first.id} — ${euro(first.total)}` : `${n} nuovi ordini!`,
+      `${ORDER_TYPE_TEXT[first.order_type] || 'Consegna'} · ${first.delivery_name || ''}`
+    );
+    if (document.hidden) { unseen += n; startTitleBlink(); }
   }
 
   // ── Gate di autenticazione ────────────────────────────────────────────────
@@ -86,16 +140,18 @@
       const q = state.statusFilter === 'tutti' ? '' : `?status=${state.statusFilter}`;
       const { orders } = await API.get('/api/orders' + q);
 
-      // Rilevamento nuovi ordini (per notifica).
+      // Rilevamento nuovi ordini (solo con filtro "tutti", per evitare falsi positivi).
       const maxId = orders.reduce((m, o) => Math.max(m, o.id), 0);
       let newIds = [];
-      if (state.initialized && maxId > state.maxOrderId) {
-        newIds = orders.filter((o) => o.id > state.maxOrderId).map((o) => o.id);
-        beep();
-        toast(`🔔 ${newIds.length} nuovo${newIds.length > 1 ? 'i' : ''} ordine${newIds.length > 1 ? '' : ''}!`, 'success');
+      if (state.statusFilter === 'tutti') {
+        if (state.initialized && maxId > state.maxOrderId) {
+          const newOrders = orders.filter((o) => o.id > state.maxOrderId);
+          newIds = newOrders.map((o) => o.id);
+          notifyNewOrders(newOrders);
+        }
+        state.maxOrderId = Math.max(state.maxOrderId, maxId);
+        state.initialized = true;
       }
-      // Aggiorna il "massimo" solo quando vediamo TUTTI gli ordini, per non perdere notifiche con i filtri.
-      if (state.statusFilter === 'tutti') { state.maxOrderId = Math.max(state.maxOrderId, maxId); state.initialized = true; }
 
       if (orders.length === 0) {
         board.innerHTML = `<div class="empty-state"><span class="big">🍽️</span>Nessun ordine ${state.statusFilter !== 'tutti' ? 'in questo stato' : 'ancora'}.</div>`;
@@ -139,7 +195,7 @@
     const cust = o.customer ? `${escapeHtml(o.customer.name)} · ${escapeHtml(o.customer.email)}` : '—';
     const showMarkPaid = o.payment_status === 'in_attesa' && o.status !== 'annullato';
     return `
-      <div class="admin-order s-${o.status} ${isNew ? 'flash' : ''}">
+      <div class="admin-order s-${o.status} ${isNew ? 'is-new' : ''}">
         <div class="admin-order__head">
           <span class="order-card__id">#${o.id} · ${cust}</span>
           <div style="display:flex;gap:.4rem;flex-wrap:wrap">
@@ -288,9 +344,10 @@
   // ── Polling ───────────────────────────────────────────────────────────────
   function startPolling() {
     if (state.pollTimer) clearInterval(state.pollTimer);
+    // Continua il polling anche con la scheda in background, così la notifica
+    // (suono + notifica desktop + titolo lampeggiante) arriva comunque.
     state.pollTimer = setInterval(() => {
       if (!document.getElementById('autoRefresh').checked) return;
-      if (document.hidden) return;
       loadStats();
       if (state.tab === 'orders') loadOrders(true);
     }, 5000);
@@ -298,6 +355,7 @@
 
   function enterDashboard() {
     showDashboard(true);
+    ensureNotificationPermission();
     renderStatusFilter();
     loadStats();
     loadOrders();
@@ -316,6 +374,28 @@
     document.getElementById('pizzaModalOverlay').addEventListener('click', (e) => {
       if (e.target.id === 'pizzaModalOverlay') closePizzaModal();
     });
+
+    // Pulsante "Attiva notifiche" (richiede il permesso con un click dell'utente)
+    const notifBtn = document.getElementById('enableNotif');
+    if (notifBtn) {
+      const refreshNotifBtn = () => {
+        if (!('Notification' in window)) { notifBtn.style.display = 'none'; return; }
+        if (Notification.permission === 'granted') { notifBtn.textContent = '🔔 Notifiche attive'; notifBtn.disabled = true; }
+        else if (Notification.permission === 'denied') { notifBtn.textContent = '🔕 Notifiche bloccate'; notifBtn.disabled = true; }
+        else { notifBtn.textContent = '🔔 Attiva notifiche'; notifBtn.disabled = false; }
+      };
+      notifBtn.addEventListener('click', () => {
+        if (!('Notification' in window)) return;
+        Notification.requestPermission().then(() => {
+          refreshNotifBtn();
+          if (Notification.permission === 'granted') {
+            desktopNotify('Notifiche attive ✓', 'Riceverai un avviso ad ogni nuovo ordine.');
+            notifySound();
+          }
+        });
+      });
+      refreshNotifBtn();
+    }
 
     const u = currentUser();
     if (API.token() && u && u.role === 'admin') enterDashboard();

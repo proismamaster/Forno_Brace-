@@ -414,6 +414,37 @@
     }
   }
 
+  // ── Coriandoli (canvas, nessuna libreria) ─────────────────────────────────
+  function confettiBurst() {
+    try {
+      if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const canvas = document.createElement('canvas');
+      canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:300';
+      canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+      document.body.appendChild(canvas);
+      const ctx = canvas.getContext('2d');
+      const colors = ['#e21f23', '#11b3c6', '#15357c', '#e3a32a', '#25d366', '#ffffff'];
+      const parts = Array.from({ length: 150 }, () => ({
+        x: canvas.width / 2 + (Math.random() - .5) * 220, y: canvas.height * 0.32,
+        vx: (Math.random() - .5) * 10, vy: Math.random() * -10 - 4, g: .22 + Math.random() * .12,
+        size: 5 + Math.random() * 7, color: colors[(Math.random() * colors.length) | 0],
+        rot: Math.random() * 6.28, vr: (Math.random() - .5) * .35,
+      }));
+      let frame = 0;
+      (function tick() {
+        frame++;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        parts.forEach((p) => {
+          p.vy += p.g; p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = p.color;
+          ctx.globalAlpha = Math.max(0, 1 - frame / 170);
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * .62); ctx.restore();
+        });
+        if (frame < 175) requestAnimationFrame(tick); else canvas.remove();
+      })();
+    } catch (_) {}
+  }
+
   // ── Conferma ordine ───────────────────────────────────────────────────────
   function renderConfirm(order) {
     const payWhere = order.order_type === 'consegna' ? 'alla consegna' : 'al ritiro';
@@ -446,6 +477,7 @@
     // Reset campi checkout per il prossimo ordine.
     ['dNotes'].forEach((id) => (document.getElementById(id).value = ''));
     ['ccNumber', 'ccExp', 'ccCvc'].forEach((id) => (document.getElementById(id).value = ''));
+    confettiBurst();
   }
 
   // ── I miei ordini ─────────────────────────────────────────────────────────
