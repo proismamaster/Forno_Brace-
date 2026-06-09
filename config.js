@@ -1,24 +1,17 @@
-// Configurazione centrale dell'applicazione.
-// In produzione imposta queste variabili tramite variabili d'ambiente.
 module.exports = {
   PORT: process.env.PORT || 3000,
-  // Chiave segreta per firmare i token JWT. CAMBIALA in produzione!
-  JWT_SECRET: process.env.JWT_SECRET || 'pizzeria-bella-napoli-secret-key-2024',
+  JWT_SECRET: process.env.JWT_SECRET || 'forno-brace-secret-key-2025',
   JWT_EXPIRES_IN: '7d',
-  DB_FILE: process.env.DB_FILE || 'pizzeria.db',
+  DB_FILE: process.env.DB_FILE || 'forno.db',
 
-  // Account amministratore creato automaticamente al primo avvio.
-  ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'admin@pizzeria.it',
+  ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'admin@fornobrace.it',
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'admin123',
-  ADMIN_NAME: 'Pizzeria Vulcano Admin',
+  ADMIN_NAME: 'Forno Brace Admin',
 
-  // Account utente demo creato automaticamente (per provare velocemente).
-  DEMO_EMAIL: 'mario@example.com',
-  DEMO_PASSWORD: 'mario123',
-  DEMO_NAME: 'Mario Rossi',
+  DEMO_EMAIL: 'marta@example.com',
+  DEMO_PASSWORD: 'marta123',
+  DEMO_NAME: 'Marta Bianchi',
 
-  // Costo di consegna in centesimi (es. 250 = 2,50 €). 0 = gratis.
-  DELIVERY_FEE: 150,
-  // Soglia in centesimi sopra la quale la consegna è gratuita (es. 2000 = 20 €).
-  FREE_DELIVERY_OVER: 2500,
+  DELIVERY_FEE: 250,
+  FREE_DELIVERY_OVER: 3000,
 };

@@ -1,4 +1,3 @@
-// Gestione autenticazione: creazione token JWT e middleware di protezione.
 const jwt = require('jsonwebtoken');
 const config = require('./config');
 
@@ -10,7 +9,6 @@ function signToken(user) {
   );
 }
 
-// Estrae e verifica il token dall'header "Authorization: Bearer <token>".
 function getUserFromRequest(req) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
@@ -22,7 +20,6 @@ function getUserFromRequest(req) {
   }
 }
 
-// Richiede un utente autenticato (qualsiasi ruolo).
 function requireAuth(req, res, next) {
   const user = getUserFromRequest(req);
   if (!user) return res.status(401).json({ error: 'Devi effettuare l\'accesso.' });
@@ -30,7 +27,6 @@ function requireAuth(req, res, next) {
   next();
 }
 
-// Richiede un utente con ruolo admin.
 function requireAdmin(req, res, next) {
   const user = getUserFromRequest(req);
   if (!user) return res.status(401).json({ error: 'Devi effettuare l\'accesso.' });

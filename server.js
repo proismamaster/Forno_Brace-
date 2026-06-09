@@ -1,4 +1,3 @@
-// Server principale: API REST + servizio dei file statici del frontend.
 const express = require('express');
 const path = require('path');
 const bcrypt = require('bcryptjs');
@@ -9,33 +8,28 @@ const seed = require('./seed');
 const { signToken, requireAuth, requireAdmin, getUserFromRequest } = require('./auth');
 const { simulateCardPayment } = require('./payments');
 
-// Al primo avvio popola il database (admin, utente demo, menu) se è vuoto.
-console.log('📦 Inizializzazione database...');
+console.log('Inizializzazione database...');
 try {
   seed.run();
-  console.log('✅ Database pronto.');
+  console.log('Database pronto.');
 } catch (err) {
-  console.error('❌ Errore inizializzazione database:', err);
+  console.error('Errore inizializzazione database:', err);
 }
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
-// Middleware per i log delle richieste (utile per il debug su Render)
 app.use((req, res, next) => {
-  if (!req.url.startsWith('/images')) {
+  if (!req.url.startsWith('/images') && !req.url.startsWith('/css') && !req.url.startsWith('/js')) {
     console.log(`[${new Date().toISOString().split('T')[1].split('.')[0]}] ${req.method} ${req.url}`);
   }
   next();
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Debug & Health Check
-// ─────────────────────────────────────────────────────────────────────────────
 app.get('/api/debug', (req, res) => {
   const fs = require('fs');
   const dbPath = path.join(__dirname, config.DB_FILE);
-  const pizzasCount = db.prepare('SELECT COUNT(*) AS c FROM pizzas').get().c;
+  const productsCount = db.prepare('SELECT COUNT(*) AS c FROM products').get().c;
   res.json({
     status: 'ok',
     uptime: process.uptime(),
@@ -43,7 +37,7 @@ app.get('/api/debug', (req, res) => {
     database: {
       path: dbPath,
       exists: fs.existsSync(dbPath),
-      pizzas: pizzasCount
+      products: productsCount
     },
     staticFiles: {
       public: fs.existsSync(path.join(__dirname, 'public')),
@@ -52,9 +46,6 @@ app.get('/api/debug', (req, res) => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helper
-// ─────────────────────────────────────────────────────────────────────────────
 const STATUSES = ['ricevuto', 'in_preparazione', 'in_consegna', 'consegnato', 'annullato'];
 
 function publicUser(u) {
@@ -77,9 +68,6 @@ function isEmail(s) {
   return typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Configurazione pubblica (consegna, ecc.)
-// ─────────────────────────────────────────────────────────────────────────────
 app.get('/api/config', (req, res) => {
   res.json({
     deliveryFee: config.DELIVERY_FEE,
@@ -87,9 +75,6 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Autenticazione
-// ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/auth/register', (req, res) => {
   const { name, email, password, address, phone } = req.body || {};
   if (!name || !name.trim()) return res.status(400).json({ error: 'Inserisci il tuo nome.' });
@@ -138,57 +123,75 @@ app.put('/api/auth/me', requireAuth, (req, res) => {
   res.json({ user: publicUser(updated) });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Menu pizze
-// ─────────────────────────────────────────────────────────────────────────────
-// Pubblico: elenco pizze disponibili. Admin (con token) può vedere tutto con ?all=1
-app.get('/api/pizzas', (req, res) => {
-  const u = getUserFromRequest(req);
-  const showAll = req.query.all === '1' && u && u.role === 'admin';
-  const rows = showAll
-    ? db.prepare('SELECT * FROM pizzas ORDER BY category, name').all()
-    : db.prepare('SELECT * FROM pizzas WHERE available = 1 ORDER BY category, name').all();
-  res.json({ pizzas: rows });
-});
-
-app.post('/api/pizzas', requireAdmin, (req, res) => {
-  const { name, description, price, category, emoji, image, available } = req.body || {};
-  if (!name || !name.trim()) return res.status(400).json({ error: 'Nome obbligatorio.' });
-  const cents = Math.round(Number(price));
-  if (!Number.isFinite(cents) || cents < 0) return res.status(400).json({ error: 'Prezzo non valido.' });
-  const info = db.prepare(
-    `INSERT INTO pizzas (name, description, price, category, emoji, image, available)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(name.trim(), description || '', cents, category || 'classiche', emoji || '🍕',
-        image || '', available === false ? 0 : 1);
-  res.status(201).json({ pizza: db.prepare('SELECT * FROM pizzas WHERE id = ?').get(info.lastInsertRowid) });
-});
-
-app.put('/api/pizzas/:id', requireAdmin, (req, res) => {
-  const p = db.prepare('SELECT * FROM pizzas WHERE id = ?').get(req.params.id);
-  if (!p) return res.status(404).json({ error: 'Pizza non trovata.' });
-  const { name, description, price, category, emoji, image, available } = req.body || {};
-  const cents = price === undefined ? p.price : Math.round(Number(price));
-  if (!Number.isFinite(cents) || cents < 0) return res.status(400).json({ error: 'Prezzo non valido.' });
-  db.prepare(
-    `UPDATE pizzas SET name = ?, description = ?, price = ?, category = ?, emoji = ?, image = ?, available = ?
-     WHERE id = ?`
-  ).run(
-    name?.trim() || p.name, description ?? p.description, cents, category || p.category,
-    emoji || p.emoji, image === undefined ? p.image : image, available === undefined ? p.available : (available ? 1 : 0), p.id
-  );
-  res.json({ pizza: db.prepare('SELECT * FROM pizzas WHERE id = ?').get(p.id) });
-});
-
-app.delete('/api/pizzas/:id', requireAdmin, (req, res) => {
-  const info = db.prepare('DELETE FROM pizzas WHERE id = ?').run(req.params.id);
-  if (info.changes === 0) return res.status(404).json({ error: 'Pizza non trovata.' });
+app.put('/api/auth/me/password', requireAuth, (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  if (!user) return res.status(404).json({ error: 'Utente non trovato.' });
+  if (!currentPassword) return res.status(400).json({ error: 'Inserisci la password attuale.' });
+  if (!newPassword || newPassword.length < 6)
+    return res.status(400).json({ error: 'La nuova password deve avere almeno 6 caratteri.' });
+  if (!bcrypt.compareSync(currentPassword, user.password_hash))
+    return res.status(401).json({ error: 'Password attuale errata.' });
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(bcrypt.hashSync(newPassword, 10), user.id);
   res.json({ ok: true });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Ordini (lato utente)
-// ─────────────────────────────────────────────────────────────────────────────
+app.get('/api/products', (req, res) => {
+  const u = getUserFromRequest(req);
+  const showAll = req.query.all === '1' && u && u.role === 'admin';
+  const rows = showAll
+    ? db.prepare('SELECT * FROM products ORDER BY category, name').all()
+    : db.prepare('SELECT * FROM products WHERE available = 1 ORDER BY category, name').all();
+  res.json({ products: rows });
+});
+
+app.post('/api/products', requireAdmin, (req, res) => {
+  const { name, description, price, category, emoji, images, available, quantity } = req.body || {};
+  if (!name || !name.trim()) return res.status(400).json({ error: 'Nome obbligatorio.' });
+  const cents = Math.round(Number(price));
+  if (!Number.isFinite(cents) || cents < 0) return res.status(400).json({ error: 'Prezzo non valido.' });
+  let imgArr = [];
+  try { imgArr = Array.isArray(images) ? images.filter(u => typeof u === 'string' && u.trim()) : JSON.parse(images || '[]').filter(u => u && u.trim()); } catch { imgArr = []; }
+  const cover = imgArr.length > 0 ? imgArr[0] : '';
+  const qty = Math.max(0, parseInt(quantity) || 0);
+  const info = db.prepare(
+    `INSERT INTO products (name, description, price, category, emoji, image, images, available, quantity)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(name.trim(), description || '', cents, category || 'pani', emoji || '🥖',
+        cover, JSON.stringify(imgArr), available === false ? 0 : 1, qty);
+  res.status(201).json({ product: db.prepare('SELECT * FROM products WHERE id = ?').get(info.lastInsertRowid) });
+});
+
+app.put('/api/products/:id', requireAdmin, (req, res) => {
+  const p = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
+  if (!p) return res.status(404).json({ error: 'Prodotto non trovato.' });
+  const { name, description, price, category, emoji, images, image, available, quantity } = req.body || {};
+  const cents = price === undefined ? p.price : Math.round(Number(price));
+  if (!Number.isFinite(cents) || cents < 0) return res.status(400).json({ error: 'Prezzo non valido.' });
+  let imgArr = [];
+  if (images !== undefined) {
+    try { imgArr = Array.isArray(images) ? images.filter(u => typeof u === 'string' && u.trim()) : JSON.parse(images).filter(u => u && u.trim()); } catch { imgArr = []; }
+  } else {
+    try { imgArr = JSON.parse(p.images || '[]'); } catch { imgArr = []; }
+  }
+  const cover = image !== undefined ? image : (imgArr.length > 0 ? imgArr[0] : p.image);
+  const qty = quantity === undefined ? p.quantity : Math.max(0, parseInt(quantity) || 0);
+  db.prepare(
+    `UPDATE products SET name = ?, description = ?, price = ?, category = ?, emoji = ?, image = ?, images = ?, available = ?, quantity = ?
+     WHERE id = ?`
+  ).run(
+    name?.trim() || p.name, description ?? p.description, cents, category || p.category,
+    emoji || p.emoji, cover, JSON.stringify(imgArr), available === undefined ? p.available : (available ? 1 : 0), qty, p.id
+  );
+  res.json({ product: db.prepare('SELECT * FROM products WHERE id = ?').get(p.id) });
+});
+
+app.delete('/api/products/:id', requireAdmin, (req, res) => {
+  const info = db.prepare('DELETE FROM products WHERE id = ?').run(req.params.id);
+  if (info.changes === 0) return res.status(404).json({ error: 'Prodotto non trovato.' });
+  res.json({ ok: true });
+});
+
 app.post('/api/orders', requireAuth, (req, res) => {
   const { items, payment_method, card, delivery, notes } = req.body || {};
   const order_type = (req.body && req.body.order_type) || 'consegna';
@@ -209,37 +212,32 @@ app.post('/api/orders', requireAuth, (req, res) => {
   if (order_type === 'tavolo' && (!Number.isFinite(partySize) || partySize < 1))
     return res.status(400).json({ error: 'Indica per quante persone è il tavolo.' });
 
-  // Ricalcola sempre i prezzi dal database: non ci si fida del client.
-  const getPizza = db.prepare('SELECT * FROM pizzas WHERE id = ?');
+  const getProduct = db.prepare('SELECT * FROM products WHERE id = ?');
   const lines = [];
   let subtotal = 0;
   for (const it of items) {
     const qty = Math.max(1, Math.min(20, parseInt(it.quantity, 10) || 0));
-    const pizza = getPizza.get(it.pizza_id);
-    if (!pizza) return res.status(400).json({ error: `Pizza non disponibile (id ${it.pizza_id}).` });
-    if (!pizza.available) return res.status(400).json({ error: `"${pizza.name}" non è più disponibile.` });
-    subtotal += pizza.price * qty;
-    lines.push({ pizza_id: pizza.id, pizza_name: pizza.name, unit_price: pizza.price, quantity: qty });
+    const product = getProduct.get(it.product_id);
+    if (!product) return res.status(400).json({ error: `Prodotto non disponibile (id ${it.product_id}).` });
+    if (!product.available) return res.status(400).json({ error: `"${product.name}" non è più disponibile.` });
+    subtotal += product.price * qty;
+    lines.push({ product_id: product.id, product_name: product.name, unit_price: product.price, quantity: qty });
   }
 
-  // Il costo di consegna si applica solo agli ordini a domicilio.
   const delivery_fee = order_type === 'consegna' ? computeDeliveryFee(subtotal) : 0;
   const total = subtotal + delivery_fee;
 
-  // Gestione pagamento.
   let payment_status = 'in_attesa';
   let payment_ref = null;
   if (payment_method === 'carta') {
     const result = simulateCardPayment(card || {}, total);
     if (!result.ok) {
-      // Pagamento rifiutato: NON creiamo l'ordine, l'utente può riprovare.
       return res.status(402).json({ error: result.message, code: result.code });
     }
     payment_status = 'pagato';
     payment_ref = result.reference;
   }
 
-  // Inserimento atomico di ordine + righe.
   const createOrder = db.transaction(() => {
     const info = db.prepare(
       `INSERT INTO orders
@@ -257,10 +255,10 @@ app.post('/api/orders', requireAuth, (req, res) => {
     );
     const orderId = info.lastInsertRowid;
     const insItem = db.prepare(
-      `INSERT INTO order_items (order_id, pizza_id, pizza_name, unit_price, quantity)
+      `INSERT INTO order_items (order_id, product_id, product_name, unit_price, quantity)
        VALUES (?, ?, ?, ?, ?)`
     );
-    for (const l of lines) insItem.run(orderId, l.pizza_id, l.pizza_name, l.unit_price, l.quantity);
+    for (const l of lines) insItem.run(orderId, l.product_id, l.product_name, l.unit_price, l.quantity);
     return orderId;
   });
 
@@ -282,9 +280,6 @@ app.get('/api/orders/:id', requireAuth, (req, res) => {
   res.json({ order });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Ordini (lato admin)
-// ─────────────────────────────────────────────────────────────────────────────
 app.get('/api/orders', requireAdmin, (req, res) => {
   const { status } = req.query;
   let rows;
@@ -307,7 +302,6 @@ app.patch('/api/orders/:id/status', requireAdmin, (req, res) => {
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Ordine non trovato.' });
 
-  // Se consegnato e pagamento in contanti -> consideralo incassato.
   let payment_status = order.payment_status;
   if (status === 'consegnato' && order.payment_method === 'contanti' && payment_status === 'in_attesa') {
     payment_status = 'pagato';
@@ -328,7 +322,6 @@ app.patch('/api/orders/:id/payment', requireAdmin, (req, res) => {
   res.json({ order: getOrderWithItems(order.id) });
 });
 
-// Statistiche per la dashboard admin.
 app.get('/api/admin/stats', requireAdmin, (req, res) => {
   const today = db.prepare(
     `SELECT COUNT(*) AS c, COALESCE(SUM(total),0) AS revenue
@@ -350,24 +343,20 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// File statici + pagine
-// ─────────────────────────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-// Gestione errori generica.
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ error: 'Errore interno del server.' });
 });
 
 app.listen(config.PORT, () => {
-  console.log('\n🥙  Bella Istanbul · Turkish Kebap · Lodi Vecchio');
-  console.log(`    Sito utente:  http://localhost:${config.PORT}`);
-  console.log(`    Pannello admin: http://localhost:${config.PORT}/admin`);
-  console.log(`    Admin: ${config.ADMIN_EMAIL} / ${config.ADMIN_PASSWORD}`);
-  console.log(`    Demo:  ${config.DEMO_EMAIL} / ${config.DEMO_PASSWORD}\n`);
+  console.log(`\nForno Brace · Pane lievitato come una volta`);
+  console.log(`    Sito:    http://localhost:${config.PORT}`);
+  console.log(`    Admin:   http://localhost:${config.PORT}/admin`);
+  console.log(`    Admin:   ${config.ADMIN_EMAIL} / ${config.ADMIN_PASSWORD}`);
+  console.log(`    Demo:    ${config.DEMO_EMAIL} / ${config.DEMO_PASSWORD}\n`);
 });

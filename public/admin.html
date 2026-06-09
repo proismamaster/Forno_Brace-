@@ -3,19 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin · Bella Istanbul</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👨‍🍳</text></svg>" />
+  <title>Gestione · Forno Brace</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%235c3a1e'/><text y='.82em' x='15' font-size='54' font-family='Georgia' font-weight='bold' fill='%23f5f0e8'>FB</text></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body class="admin-body">
-  <!-- ── Topbar ─────────────────────────────────────────────────────────── -->
   <header class="admin-topbar">
     <div class="container admin-topbar__inner">
       <span class="brand">
-        <img class="brand__logo" src="/images/insegna.jpg" alt="Bella Istanbul" onerror="this.style.display='none'" />
+        <svg width="120" height="28" viewBox="0 0 150 30" aria-hidden="true">
+          <text x="0" y="22" font-family="Georgia, serif" font-weight="700" font-size="21" fill="#f5f0e8">Forno Brace</text>
+        </svg>
         <span style="color:#cdd6ec;font-weight:700;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase">Gestione</span>
       </span>
       <div class="spacer"></div>
@@ -25,48 +26,47 @@
     </div>
   </header>
 
-  <!-- ── Login gate ─────────────────────────────────────────────────────── -->
   <div class="container">
     <div class="login-gate" id="loginGate">
       <div class="panel">
         <h2 style="margin-bottom:.3rem">Area riservata</h2>
         <p class="muted" style="margin-bottom:1.2rem">Accedi con un account amministratore.</p>
         <form id="adminLoginForm">
-          <div class="field"><label>Email</label><input type="email" id="adEmail" value="admin@pizzeria.it" required /></div>
+          <div class="field"><label>Email</label><input type="email" id="adEmail" value="admin@fornobrace.it" required /></div>
           <div class="field"><label>Password</label><input type="password" id="adPass" value="admin123" required /></div>
           <button class="btn btn--dark btn--block btn--lg" type="submit">Entra</button>
-          <p class="muted" style="font-size:.8rem;margin-top:.8rem;text-align:center">Default: admin@pizzeria.it / admin123</p>
+          <p class="muted" style="font-size:.8rem;margin-top:.8rem;text-align:center">Default: admin@fornobrace.it / admin123</p>
         </form>
       </div>
     </div>
 
-    <!-- ── Dashboard ────────────────────────────────────────────────────── -->
     <div id="dashboard" style="display:none">
       <div class="stats" id="stats"></div>
 
       <div class="admin-toolbar">
         <div class="admin-tabs">
-          <button class="is-active" data-tab="orders">📋 Ordini</button>
-          <button data-tab="menu">🍕 Menu</button>
+          <button class="is-active" data-tab="orders">Ordini</button>
+          <button data-tab="menu">Menu</button>
         </div>
         <div class="spacer" style="margin-left:auto"></div>
-        <button class="btn btn--ghost btn--sm" id="enableNotif" title="Ricevi una notifica del browser ad ogni nuovo ordine">🔔 Attiva notifiche</button>
+        <button class="btn btn--ghost btn--sm" id="enableNotif" title="Ricevi una notifica del browser ad ogni nuovo ordine">
+          <svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.15em"><path d="M18 12.5V10a6 6 0 1 0-12 0v2.5l-2 3V17h16v-1.5l-2-3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 17.5a2.5 2.5 0 0 0 5 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Attiva notifiche
+        </button>
         <label class="muted" style="font-size:.85rem;display:flex;align-items:center;gap:.4rem">
           <input type="checkbox" id="autoRefresh" checked /> Aggiornamento automatico
         </label>
       </div>
 
-      <!-- Tab ordini -->
       <div id="tabOrders">
         <div class="pills" id="statusFilter" style="margin-bottom:1rem"></div>
         <div id="ordersBoard"></div>
       </div>
 
-      <!-- Tab menu -->
       <div id="tabMenu" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
           <h2 style="font-size:1.4rem">Gestione menu</h2>
-          <button class="btn btn--primary" id="addPizzaBtn">＋ Nuova pizza</button>
+          <button class="btn btn--primary" id="addPizzaBtn">＋ Nuovo prodotto</button>
         </div>
         <div style="overflow-x:auto">
           <table class="admin-table" id="pizzaTable"></table>
@@ -75,67 +75,46 @@
     </div>
   </div>
 
-  <!-- ── Modale aggiungi/modifica pizza ─────────────────────────────────── -->
   <div class="modal-overlay" id="pizzaModalOverlay">
     <div class="modal" role="dialog" aria-modal="true">
       <div class="modal__head">
         <div style="display:flex;align-items:center;justify-content:space-between">
-          <h3 id="pizzaModalTitle">Nuova pizza</h3>
+          <h3 id="pizzaModalTitle">Nuovo prodotto</h3>
           <button class="icon-btn" id="closePizzaModal">✕</button>
         </div>
       </div>
       <div class="modal__body">
         <input type="hidden" id="pzId" />
+        <div class="field"><label>Nome</label><input id="pzName" placeholder="Pane di campagna" /></div>
+        <div class="field"><label>Descrizione</label><textarea id="pzDesc" placeholder="Ingredienti, note…"></textarea></div>
         <div class="field-row">
-          <div class="field"><label>Nome</label><input id="pzName" placeholder="Margherita" /></div>
-          <div class="field"><label>Emoji</label><input id="pzEmoji" placeholder="🍕" maxlength="4" /></div>
+          <div class="field"><label>Prezzo (€)</label><input id="pzPrice" type="number" step="0.50" min="0" placeholder="4.50" /></div>
+          <div class="field"><label>Quantità disponibile</label><input id="pzQuantity" type="number" min="0" step="1" placeholder="0" /></div>
         </div>
-        <div class="field"><label>Descrizione</label><textarea id="pzDesc" placeholder="Ingredienti…"></textarea></div>
         <div class="field-row">
-          <div class="field"><label>Prezzo (€)</label><input id="pzPrice" type="number" step="0.50" min="0" placeholder="6.50" /></div>
           <div class="field"><label>Categoria</label>
             <select id="pzCat">
-              <option value="kebab">Kebab & Turche</option>
-              <option value="pizze">Pizze</option>
-              <option value="contorni">Sfizi & Contorni</option>
+              <option value="pani">Pane & Focacce</option>
+              <option value="dolci">Dolci</option>
+              <option value="piatti">Piatti</option>
+              <option value="bevande">Bevande</option>
             </select>
           </div>
+          <div class="field"><label>Stato</label>
+            <label class="field-check">
+              <input type="checkbox" id="pzAvail" checked /> Disponibile
+            </label>
+          </div>
         </div>
-        <div class="field">
-          <label for="pzImage">Foto del prodotto</label>
-          <select id="pzImage">
-            <option value="">— Nessuna (usa emoji) —</option>
-            <optgroup label="Kebab & Turche">
-              <option value="kebab-panino.jpg">Panino kebab</option>
-              <option value="durum.jpg">Dürüm / piadina arrotolata</option>
-              <option value="kebab-piadina.jpg">Piadina kebab (piatto)</option>
-              <option value="kebab-piatto.jpg">Piatto kebab (spiedini)</option>
-              <option value="doner.jpg">Döner alla fiamma</option>
-            </optgroup>
-            <optgroup label="Pizze">
-              <option value="margherita.jpg">Margherita</option>
-              <option value="marinara.jpg">Marinara / Lahmacun</option>
-              <option value="diavola.jpg">Diavola (piccante)</option>
-              <option value="pizza-hot.jpg">Pizza appena sfornata</option>
-              <option value="quattro-formaggi.jpg">Quattro Formaggi</option>
-              <option value="capricciosa.jpg">Capricciosa</option>
-              <option value="quattro-stagioni.jpg">Quattro Stagioni</option>
-              <option value="funghi.jpg">Funghi e verdure</option>
-              <option value="bufalina.jpg">Bufalina</option>
-              <option value="bianca.jpg">Bianca / Pide</option>
-              <option value="vegetariana.jpg">Vegetariana</option>
-            </optgroup>
-            <optgroup label="Sfizi & Contorni">
-              <option value="falafel.jpg">Falafel</option>
-              <option value="wings.jpg">Alette di pollo</option>
-              <option value="patatine.jpg">Patatine fritte</option>
-              <option value="hamburger.jpg">Hamburger</option>
-            </optgroup>
-          </select>
+        <div class="field" id="pzGalleryField">
+          <label id="pzGalleryLabel" style="display:none">Galleria foto (trascina per riordinare)</label>
+          <div class="gallery-manager" id="pzGallery">
+            <div class="gallery-manager__list" id="pzGalleryList"></div>
+            <div class="gallery-manager__add">
+              <input type="file" accept="image/*" id="pzImageFile" multiple />
+            </div>
+          </div>
         </div>
-        <label class="muted" style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem">
-          <input type="checkbox" id="pzAvail" checked /> Disponibile
-        </label>
         <div class="form-error" id="pizzaError"></div>
         <button class="btn btn--primary btn--block btn--lg" id="savePizzaBtn">Salva</button>
       </div>

@@ -1,7 +1,7 @@
 {
-  "name": "pizzeria-app",
+  "name": "forno-brace",
   "version": "1.0.0",
-  "description": "Pizzeria online - ordini lato utente e gestione lato admin con pagamento contanti e carta (Stripe simulato)",
+  "description": "Bottega artigianale online — pane, focacce, dolci e piatti di stagione. Ordini lato cliente e gestione lato admin con pagamento contanti e carta (simulato).",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -10,11 +10,11 @@
     "reset": "node seed.js --reset"
   },
   "keywords": [
-    "pizzeria",
-    "ordini",
+    "bakery",
+    "artisan",
+    "ecommerce",
     "express",
-    "sqlite",
-    "stripe"
+    "sqlite"
   ],
   "author": "",
   "license": "MIT",

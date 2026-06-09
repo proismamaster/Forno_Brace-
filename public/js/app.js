@@ -1,9 +1,8 @@
-// Logica del sito lato cliente: menu, carrello, checkout, pagamento, ordini, account.
 (function () {
   'use strict';
 
   const state = {
-    pizzas: [],
+    products: [],
     cart: loadCart(),
     category: 'tutte',
     search: '',
@@ -14,51 +13,62 @@
     lastOrder: null,
   };
 
-  // ── Carrello (persistito in localStorage) ─────────────────────────────────
-  function loadCart() { try { return JSON.parse(localStorage.getItem('pizza_cart')) || []; } catch { return []; } }
-  function saveCart() { localStorage.setItem('pizza_cart', JSON.stringify(state.cart)); }
+  function loadCart() { try { return JSON.parse(localStorage.getItem('forno_cart')) || []; } catch { return []; } }
+  function saveCart() { localStorage.setItem('forno_cart', JSON.stringify(state.cart)); }
   const cartCount = () => state.cart.reduce((n, i) => n + i.quantity, 0);
   const cartSubtotal = () => state.cart.reduce((n, i) => n + i.price * i.quantity, 0);
   function deliveryFee() {
     const sub = cartSubtotal();
     if (sub === 0) return 0;
-    if (state.orderType !== 'consegna') return 0; // asporto e tavolo: nessun costo di consegna
+    if (state.orderType !== 'consegna') return 0;
     if (state.config.freeDeliveryOver > 0 && sub >= state.config.freeDeliveryOver) return 0;
     return state.config.deliveryFee;
   }
   const cartTotal = () => cartSubtotal() + deliveryFee();
 
-  function addToCart(pizza) {
-    const found = state.cart.find((i) => i.pizza_id === pizza.id);
+  function addToCart(product) {
+    const found = state.cart.find((i) => i.product_id === product.id);
     if (found) found.quantity = Math.min(20, found.quantity + 1);
-    else state.cart.push({ pizza_id: pizza.id, name: pizza.name, emoji: pizza.emoji, image: pizza.image, price: pizza.price, quantity: 1 });
+    else state.cart.push({ product_id: product.id, name: product.name, emoji: product.emoji, image: product.image, price: product.price, quantity: 1 });
     saveCart(); refreshCartUI(); renderGrid();
-    toast(`${pizza.name} aggiunto al carrello`, 'success');
+    toast(`${product.name} aggiunto al carrello`, 'success');
   }
-  function changeQty(pizzaId, delta) {
-    const item = state.cart.find((i) => i.pizza_id === pizzaId);
+  function changeQty(productId, delta) {
+    const item = state.cart.find((i) => i.product_id === productId);
     if (!item) return;
+    const product = state.products.find((p) => p.id === productId);
+    const max = product ? product.quantity : 20;
     item.quantity += delta;
-    if (item.quantity <= 0) state.cart = state.cart.filter((i) => i.pizza_id !== pizzaId);
-    else item.quantity = Math.min(20, item.quantity);
+    if (item.quantity <= 0) state.cart = state.cart.filter((i) => i.product_id !== productId);
+    else item.quantity = Math.min(max, item.quantity);
     saveCart(); refreshCartUI(); renderGrid();
     if (currentView() === 'checkout') renderCheckoutSummary();
   }
-  function removeFromCart(pizzaId) {
-    state.cart = state.cart.filter((i) => i.pizza_id !== pizzaId);
+  function removeFromCart(productId) {
+    state.cart = state.cart.filter((i) => i.product_id !== productId);
     saveCart(); refreshCartUI(); renderGrid();
   }
   function clearCart() { state.cart = []; saveCart(); refreshCartUI(); renderGrid(); }
 
   function refreshCartUI() {
     const badge = document.getElementById('cartBadge');
+    const mBadge = document.getElementById('mCartBadge');
     const n = cartCount();
+    const wasHidden = badge.classList.contains('hidden');
     badge.textContent = n;
     badge.classList.toggle('hidden', n === 0);
+    if (mBadge) {
+      mBadge.textContent = n;
+      mBadge.classList.toggle('hidden', n === 0);
+    }
+    if (n > 0 && wasHidden) {
+      badge.classList.remove('pulse');
+      void badge.offsetWidth;
+      badge.classList.add('pulse');
+    }
     renderCartDrawer();
   }
 
-  // ── Router minimale ───────────────────────────────────────────────────────
   function currentView() {
     const v = document.querySelector('.view:not(.hidden)');
     return v ? v.dataset.view : 'menu';
@@ -70,27 +80,41 @@
       el.classList.toggle('is-active', el.dataset.nav === name));
     document.querySelectorAll('.mobile-nav button[data-nav]').forEach((b) =>
       b.classList.toggle('is-active', b.dataset.nav === name));
-    // Scorri in cima solo se cambiamo davvero vista (così lo scroll verso un'ancora non confligge).
     if (changed && !opts.noScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
     if (name === 'orders') loadOrders();
     if (name === 'account') renderAccount();
     if (name === 'checkout') renderCheckoutSummary();
   }
 
-  // ── Autenticazione UI ─────────────────────────────────────────────────────
   function updateAuthUI() {
     const user = currentUser();
     const nav = document.getElementById('navAccount');
     nav.textContent = user ? user.name.split(' ')[0] : 'Accedi';
+    const pdName = document.getElementById('pdName');
+    const pdEmail = document.getElementById('pdEmail');
+    const pdHeader = document.querySelector('.profile-dropdown__header');
+    const pdBody = document.querySelector('.profile-dropdown__body');
+    const pdGuest = document.getElementById('pdGuest');
+    if (user) {
+      if (pdName) pdName.textContent = user.name;
+      if (pdEmail) pdEmail.textContent = user.email;
+      if (pdHeader) pdHeader.classList.add('is-shown');
+      if (pdBody) pdBody.classList.add('is-shown');
+      if (pdGuest) pdGuest.classList.remove('is-shown');
+    } else {
+      if (pdHeader) pdHeader.classList.remove('is-shown');
+      if (pdBody) pdBody.classList.remove('is-shown');
+      if (pdGuest) pdGuest.classList.add('is-shown');
+    }
   }
 
-  // ── Menu ──────────────────────────────────────────────────────────────────
   const ICON = (id) => `<svg class="ic"><use href="#${id}"/></svg>`;
-  const CAT_ORDER = ['kebab', 'pizze', 'contorni'];
+  const CAT_ORDER = ['pani', 'dolci', 'piatti', 'bevande'];
   const CAT_META = {
-    kebab: { label: 'Kebab', icon: 'ic-kebab' },
-    pizze: { label: 'Pizze', icon: 'ic-pizza' },
-    contorni: { label: 'Sfizi', icon: 'ic-fries' },
+    pani: { label: 'Pane & Focacce', icon: 'ic-bread' },
+    dolci: { label: 'Dolci', icon: 'ic-star' },
+    piatti: { label: 'Piatti', icon: 'ic-olive' },
+    bevande: { label: 'Bevande', icon: 'ic-leaf' },
   };
   const catLabel = (c) => (CAT_META[c] && CAT_META[c].label) || (c.charAt(0).toUpperCase() + c.slice(1));
   const catIcon = (c) => (CAT_META[c] && CAT_META[c].icon) || 'ic-menu';
@@ -106,7 +130,7 @@
   };
 
   function renderPills() {
-    const present = Array.from(new Set(state.pizzas.map((p) => p.category)))
+    const present = Array.from(new Set(state.products.map((p) => p.category)))
       .sort((a, b) => catRank(a) - catRank(b));
     const cats = ['tutte', ...present];
     const wrap = document.getElementById('categoryPills');
@@ -120,9 +144,9 @@
   }
 
   function renderGrid(animate = false) {
-    const grid = document.getElementById('pizzaGrid');
+    const grid = document.getElementById('productGrid');
     const term = state.search.trim().toLowerCase();
-    let list = state.pizzas;
+    let list = state.products;
     if (state.category !== 'tutte') list = list.filter((p) => p.category === state.category);
     if (term) list = list.filter((p) =>
       p.name.toLowerCase().includes(term) || p.description.toLowerCase().includes(term));
@@ -132,41 +156,76 @@
       return;
     }
     grid.innerHTML = list.map((p, idx) => {
-      const inCart = state.cart.find((i) => i.pizza_id === p.id);
-      const control = inCart
-        ? `<div class="stepper" data-id="${p.id}">
-             <button data-act="dec" aria-label="Togli">−</button>
-             <span>${inCart.quantity}</span>
-             <button data-act="inc" aria-label="Aggiungi">+</button>
-           </div>`
-        : `<button class="btn btn--primary btn--sm" data-add="${p.id}">Aggiungi</button>`;
-      const imgPath = (p.image && (p.image.startsWith('http') || p.image.startsWith('https')))
-        ? p.image
-        : (p.image ? `/images/${p.image}` : '');
-      const img = imgPath
-        ? `<img src="${escapeHtml(imgPath)}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="this.remove()" />`
+      const inCart = state.cart.find((i) => i.product_id === p.id);
+      const admin = isAdmin();
+      const soldOut = p.quantity <= 0;
+      const inCartQty = inCart ? inCart.quantity : 0;
+      const canAdd = p.available && !soldOut;
+      let control;
+      if (soldOut) {
+        control = '<span class="card__add" style="opacity:.4;cursor:default;border-color:var(--line-dark);color:var(--ink-soft)">Esaurito</span>';
+      } else if (inCart) {
+        control = `<div class="stepper" data-id="${p.id}">
+             <button data-act="dec" aria-label="Togli">&minus;</button>
+             <span>${inCartQty}</span>
+             <button data-act="inc" aria-label="Aggiungi"${inCartQty >= p.quantity ? ' disabled' : ''}>+</button>
+           </div>`;
+      } else {
+        control = `<button class="btn btn--primary btn--sm" data-add="${p.id}"${!canAdd ? ' disabled' : ''}>Aggiungi</button>`;
+      }
+      const qtyBadge = p.quantity <= 10
+        ? `<span class="card__qty ${p.quantity <= 3 ? 'card__qty--low' : ''}">${p.quantity} disponibili</span>`
         : '';
+
+      let imgHtml = '';
+      const rawImages = p.images || '[]';
+      let gallery = [];
+      try { gallery = JSON.parse(rawImages); } catch { gallery = []; }
+      if (gallery.length === 0 && p.image) gallery = [p.image];
+      if (gallery.length > 0) {
+        if (gallery.length === 1) {
+          imgHtml = `<img src="${gallery[0]}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="var ci=this.parentElement.querySelector('.card__emoji');if(ci)ci.style.display='flex'" />`;
+        } else {
+          const slides = gallery.map((url, si) => `<div class="prod-carousel__slide"><img src="${url}" alt="${escapeHtml(p.name)}" loading="${si === 0 ? 'eager' : 'lazy'}" onerror="var s=this.parentElement.parentElement.parentElement;if(s&&s.querySelector('.card__emoji'))s.querySelector('.card__emoji').style.display='flex'" /></div>`).join('');
+          const dots = gallery.map((_, di) => `<button class="prod-carousel__dot${di === 0 ? ' is-active' : ''}" data-idx="${di}" aria-label="Vai all'immagine ${di + 1}"></button>`).join('');
+          imgHtml = `<div class="prod-carousel" data-carousel>
+            <div class="prod-carousel__track">${slides}</div>
+            <button class="prod-carousel__btn prod-carousel__btn--prev" aria-label="Precedente">&#8249;</button>
+            <button class="prod-carousel__btn prod-carousel__btn--next" aria-label="Successiva">&#8250;</button>
+            <div class="prod-carousel__dots">${dots}</div>
+          </div>`;
+        }
+      }
+      const imgWrap = `<div class="card__img">
+        <span class="card__emoji" style="font-size:2.4rem;display:${imgHtml ? 'none' : 'flex'};align-items:center;justify-content:center;position:absolute;inset:0">${p.emoji}</span>
+        ${imgHtml}
+      </div>`;
+
       const popStyle = animate ? ` style="animation-delay:${Math.min(idx, 12) * 45}ms"` : '';
-      return `<article class="pizza-card ${animate ? 'pop' : ''} ${p.available ? '' : 'is-unavailable'}"${popStyle}>
-        <div class="pizza-card__media">
-          <span class="pizza-card__cat">${ICON(catIcon(p.category))} ${catLabel(p.category)}</span>
-          <span class="media-emoji">${p.emoji}</span>
-          ${img}
-          ${p.available ? '' : '<span class="sold-out">Esaurita</span>'}
-        </div>
-        <div class="pizza-card__body">
+      const adminBtns = admin ? `
+        <div style="display:flex;gap:.3rem;margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--line)">
+          <button class="btn btn--ghost btn--sm" data-edit="${p.id}" style="font-size:.75rem;padding:.3em .6em">Modifica</button>
+          <button class="btn btn--ghost btn--sm" data-del="${p.id}" style="font-size:.75rem;padding:.3em .6em;color:var(--err)">Elimina</button>
+          ${p.available ? '<button class="btn btn--ghost btn--sm" data-toggle="'+p.id+'" style="font-size:.75rem;padding:.3em .6em">Disattiva</button>'
+            : '<button class="btn btn--ghost btn--sm" data-toggle="'+p.id+'" style="font-size:.75rem;padding:.3em .6em;color:var(--olive)">Attiva</button>'}
+        </div>` : '';
+      return `<article class="card ${animate ? 'pop' : ''} ${p.available ? '' : 'unavailable'}"${popStyle}>
+        ${imgWrap}
+        <div class="card__body">
           <h3>${escapeHtml(p.name)}</h3>
-          <p class="pizza-card__desc">${escapeHtml(p.description)}</p>
-          <div class="pizza-card__foot">
-            <span class="price">${euro(p.price)}</span>
+          <p class="card__desc">${escapeHtml(p.description)}</p>
+          <div class="card__foot">
+            <span class="card__price">${euro(p.price)}</span>
             ${p.available ? control : ''}
           </div>
+          ${qtyBadge}
+          ${adminBtns}
         </div>
       </article>`;
     }).join('');
 
     grid.querySelectorAll('[data-add]').forEach((b) => b.addEventListener('click', () => {
-      const p = state.pizzas.find((x) => x.id === Number(b.dataset.add));
+      const p = state.products.find((x) => x.id === Number(b.dataset.add));
       if (p) addToCart(p);
     }));
     grid.querySelectorAll('.stepper').forEach((s) => {
@@ -174,16 +233,85 @@
       s.querySelector('[data-act="inc"]').addEventListener('click', () => changeQty(id, +1));
       s.querySelector('[data-act="dec"]').addEventListener('click', () => changeQty(id, -1));
     });
+    grid.querySelectorAll('[data-edit]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const p = state.products.find((x) => x.id === Number(b.dataset.edit));
+        if (p) openProductModal(p);
+      }));
+    grid.querySelectorAll('[data-del]').forEach((b) =>
+      b.addEventListener('click', () => deleteProduct(Number(b.dataset.del))));
+    grid.querySelectorAll('[data-toggle]').forEach((b) =>
+      b.addEventListener('click', async () => {
+        const p = state.products.find((x) => x.id === Number(b.dataset.toggle));
+        if (!p) return;
+        try {
+          await API.put(`/api/products/${p.id}`, { available: !p.available });
+          toast(`"${p.name}" ${p.available ? 'disattivato' : 'attivato'}.`, 'info');
+          await reloadProducts();
+        } catch (e) { toast(e.message, 'error'); }
+      }));
+    setupCarousels(grid);
   }
 
-  // ── Drawer carrello ───────────────────────────────────────────────────────
+  function setupCarousels(root) {
+    root.querySelectorAll('.prod-carousel[data-carousel]').forEach(function(carousel) {
+      if (carousel.dataset.carouselInit === '1') return;
+      carousel.dataset.carouselInit = '1';
+      var current = 0;
+      var track = carousel.querySelector('.prod-carousel__track');
+      var slides = track.children;
+      var total = slides.length;
+      var dots = carousel.querySelectorAll('.prod-carousel__dot');
+      var timer = null;
+      var touchStartX = 0;
+      var touchEndX = 0;
+
+      function goTo(idx) {
+        current = Math.max(0, Math.min(total - 1, idx));
+        track.style.transform = 'translateX(' + (-current * 100) + '%)';
+        dots.forEach(function(d, i) { d.classList.toggle('is-active', i === current); });
+      }
+
+      function next() { goTo(current + 1); }
+      function prev() { goTo(current - 1); }
+
+      carousel.querySelector('.prod-carousel__btn--next').addEventListener('click', next);
+      carousel.querySelector('.prod-carousel__btn--prev').addEventListener('click', prev);
+      dots.forEach(function(d) {
+        d.addEventListener('click', function() { goTo(Number(d.dataset.idx)); });
+      });
+
+      carousel.addEventListener('mouseenter', function() {
+        timer = setInterval(function() {
+          goTo((current + 1) % total);
+        }, 2800);
+      });
+      carousel.addEventListener('mouseleave', function() {
+        if (timer) { clearInterval(timer); timer = null; }
+      });
+
+      carousel.addEventListener('touchstart', function(e) { touchStartX = e.touches[0].clientX; }, { passive: true });
+      carousel.addEventListener('touchend', function(e) {
+        touchEndX = e.changedTouches[0].clientX;
+        var diff = touchStartX - touchEndX;
+        if (Math.abs(diff) > 40) {
+          if (diff > 0) next(); else prev();
+        }
+      }, { passive: true });
+    });
+  }
+
   function openCart() {
-    document.getElementById('overlay').classList.add('is-open');
-    document.getElementById('cartDrawer').classList.add('is-open');
+    document.getElementById('overlay').classList.add('is-visible');
+    const drawer = document.getElementById('cartDrawer');
+    drawer.classList.add('is-open');
+    drawer.setAttribute('aria-hidden', 'false');
   }
   function closeCart() {
-    document.getElementById('overlay').classList.remove('is-open');
-    document.getElementById('cartDrawer').classList.remove('is-open');
+    document.getElementById('overlay').classList.remove('is-visible');
+    const drawer = document.getElementById('cartDrawer');
+    drawer.classList.remove('is-open');
+    drawer.setAttribute('aria-hidden', 'true');
   }
 
   function renderCartDrawer() {
@@ -198,15 +326,15 @@
     body.innerHTML = state.cart.map((i) => `
       <div class="cart-line">
         <span class="cart-line__emoji">${i.image
-          ? `<img src="${i.image.startsWith('http') ? i.image : '/images/' + i.image}" alt="" loading="lazy" onerror="this.remove()" />`
+          ? `<img src="${i.image}" alt="" loading="lazy" onerror="this.remove()" />`
           : (i.emoji || '')}</span>
         <div class="cart-line__main">
           <strong>${escapeHtml(i.name)}</strong>
           <small>${euro(i.price)} · ${euro(i.price * i.quantity)}</small>
-          <div><button class="cart-line__remove" data-rm="${i.pizza_id}">Rimuovi</button></div>
+          <div><button class="cart-line__remove" data-rm="${i.product_id}">Rimuovi</button></div>
         </div>
-        <div class="stepper" data-id="${i.pizza_id}">
-          <button data-act="dec">−</button><span>${i.quantity}</span><button data-act="inc">+</button>
+        <div class="stepper" data-id="${i.product_id}">
+          <button data-act="dec">&minus;</button><span>${i.quantity}</span><button data-act="inc">+</button>
         </div>
       </div>`).join('');
 
@@ -229,7 +357,6 @@
     foot.querySelector('#clearCartBtn').addEventListener('click', clearCart);
   }
 
-  // ── Checkout ──────────────────────────────────────────────────────────────
   function goCheckout() {
     if (state.cart.length === 0) { toast('Il carrello è vuoto.', 'error'); return; }
     closeCart();
@@ -239,7 +366,6 @@
       showView('account');
       return;
     }
-    // Precompila i dati dal profilo.
     const u = currentUser();
     document.getElementById('dName').value = document.getElementById('dName').value || u.name || '';
     document.getElementById('dAddr').value = document.getElementById('dAddr').value || u.address || '';
@@ -263,19 +389,18 @@
       <h3 style="margin-bottom:1rem">Riepilogo</h3>
       <div class="summary-row" style="font-weight:600;color:var(--ink)"><span>Modalità</span><span>${orderTypeChip(state.orderType)}</span></div>
       <div style="border-top:1px dashed var(--line);margin:.6rem 0"></div>
-      ${state.cart.map((i) => `<div class="summary-row"><span>${i.quantity}× ${escapeHtml(i.name)}</span><span>${euro(i.price * i.quantity)}</span></div>`).join('')}
+      ${state.cart.map((i) => `<div class="summary-row"><span>${i.quantity}&times; ${escapeHtml(i.name)}</span><span>${euro(i.price * i.quantity)}</span></div>`).join('')}
       <div class="summary-row" style="margin-top:.6rem"><span>Subtotale</span><span>${euro(sub)}</span></div>
       ${feeRow}
       <div class="summary-row total"><span>Totale</span><span class="price">${euro(cartTotal())}</span></div>
-      <button class="btn btn--green btn--block btn--lg" id="placeOrderBtn" style="margin-top:1rem">
+      <button class="btn btn--olive btn--block btn--lg" id="placeOrderBtn" style="margin-top:1rem">
         ${state.paymentMethod === 'carta' ? ICON('ic-card') + ' Paga ' + euro(cartTotal()) : ICON('ic-check') + ' Conferma ordine'}
       </button>
-      <button class="btn btn--ghost btn--block btn--sm" id="backMenuBtn" style="margin-top:.5rem">← Aggiungi altro</button>`;
+      <button class="btn btn--ghost btn--block btn--sm" id="backMenuBtn" style="margin-top:.5rem">&larr; Aggiungi altro</button>`;
     box.querySelector('#placeOrderBtn').addEventListener('click', placeOrder);
     box.querySelector('#backMenuBtn').addEventListener('click', () => showView('menu'));
   }
 
-  // Mostra/nasconde i campi del checkout in base al tipo di ordine.
   function setOrderType(type) {
     state.orderType = type;
     document.querySelectorAll('.order-type').forEach((o) =>
@@ -319,7 +444,7 @@
   async function submitOrder(card) {
     const d = gatherDelivery();
     const payload = {
-      items: state.cart.map((i) => ({ pizza_id: i.pizza_id, quantity: i.quantity })),
+      items: state.cart.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
       payment_method: state.paymentMethod,
       order_type: state.orderType,
       card,
@@ -329,13 +454,12 @@
       },
       notes: d.notes,
     };
-    const data = await API.post('/api/orders', payload); // può lanciare
+    const data = await API.post('/api/orders', payload);
     state.lastOrder = data.order;
     clearCart();
     return data.order;
   }
 
-  // ── Modale pagamento carta ────────────────────────────────────────────────
   function openPayModal() {
     document.getElementById('payError').textContent = '';
     document.getElementById('payNowBtn').innerHTML = `${ICON('ic-card')} Paga ${euro(cartTotal())}`;
@@ -348,7 +472,7 @@
 
   function updateCardPreview() {
     const num = document.getElementById('ccNumber').value || '';
-    document.getElementById('ccPreview').textContent = num.trim() || '•••• •••• •••• ••••';
+    document.getElementById('ccPreview').textContent = num.trim() || '\u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022';
     document.getElementById('ccNamePreview').textContent =
       (document.getElementById('ccName').value || 'NOME COGNOME').toUpperCase();
     document.getElementById('ccExpPreview').textContent = document.getElementById('ccExp').value || 'MM/AA';
@@ -377,7 +501,7 @@
     document.querySelectorAll('.test-cards code[data-card]').forEach((c) =>
       c.addEventListener('click', () => {
         num.value = c.dataset.card; exp.value = '12/27'; cvc.value = '123';
-        if (!name.value) name.value = (currentUser()?.name) || 'Mario Rossi';
+        if (!name.value) name.value = (currentUser()?.name) || 'Marta Bianchi';
         updateCardPreview();
       }));
 
@@ -399,9 +523,8 @@
       name: document.getElementById('ccName').value,
     };
     btn.disabled = true;
-    btn.innerHTML = `<span class="spinner"></span> Elaborazione…`;
+    btn.innerHTML = `<span class="spinner"></span> Elaborazione&hellip;`;
     try {
-      // Piccola pausa per simulare l'elaborazione del pagamento.
       await new Promise((r) => setTimeout(r, 900));
       const order = await submitOrder(card);
       closePayModal();
@@ -414,7 +537,6 @@
     }
   }
 
-  // ── Coriandoli (canvas, nessuna libreria) ─────────────────────────────────
   function confettiBurst() {
     try {
       if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -423,7 +545,7 @@
       canvas.width = window.innerWidth; canvas.height = window.innerHeight;
       document.body.appendChild(canvas);
       const ctx = canvas.getContext('2d');
-      const colors = ['#e21f23', '#11b3c6', '#15357c', '#e3a32a', '#25d366', '#ffffff'];
+      const colors = ['#c8552a', '#4a5d2a', '#5c3a1e', '#c9a34c', '#25d366', '#f5f0e8'];
       const parts = Array.from({ length: 150 }, () => ({
         x: canvas.width / 2 + (Math.random() - .5) * 220, y: canvas.height * 0.32,
         vx: (Math.random() - .5) * 10, vy: Math.random() * -10 - 4, g: .22 + Math.random() * .12,
@@ -445,7 +567,6 @@
     } catch (_) {}
   }
 
-  // ── Conferma ordine ───────────────────────────────────────────────────────
   function renderConfirm(order) {
     const payWhere = order.order_type === 'consegna' ? 'alla consegna' : 'al ritiro';
     const paidLabel = order.payment_method === 'carta'
@@ -460,11 +581,11 @@
     document.getElementById('confirmBox').innerHTML = `
       <div class="confirm__check">${ICON('ic-check')}</div>
       <h2 style="font-size:1.7rem">Ordine confermato!</h2>
-      <p class="muted">Ordine <strong>#${order.id}</strong> — ${orderTypeChip(order.order_type)}</p>
+      <p class="muted">Ordine <strong>#${order.id}</strong> &mdash; ${orderTypeChip(order.order_type)}</p>
       <p class="muted" style="font-size:.92rem;margin-top:.2rem">${detail}</p>
       <p style="margin:.8rem 0">${paidLabel}</p>
       <div class="panel" style="max-width:420px;margin:1.2rem auto;text-align:left">
-        ${order.items.map((i) => `<div class="summary-row"><span>${i.quantity}× ${escapeHtml(i.pizza_name)}</span><span>${euro(i.unit_price * i.quantity)}</span></div>`).join('')}
+        ${order.items.map((i) => `<div class="summary-row"><span>${i.quantity}&times; ${escapeHtml(i.product_name)}</span><span>${euro(i.unit_price * i.quantity)}</span></div>`).join('')}
         ${feeRow}
         <div class="summary-row total"><span>Totale</span><span class="price">${euro(order.total)}</span></div>
       </div>
@@ -474,13 +595,11 @@
       </div>`;
     document.getElementById('seeOrders').addEventListener('click', () => showView('orders'));
     document.getElementById('backHome').addEventListener('click', () => showView('menu'));
-    // Reset campi checkout per il prossimo ordine.
     ['dNotes'].forEach((id) => (document.getElementById(id).value = ''));
     ['ccNumber', 'ccExp', 'ccCvc'].forEach((id) => (document.getElementById(id).value = ''));
     confettiBurst();
   }
 
-  // ── I miei ordini ─────────────────────────────────────────────────────────
   function orderTypeBadge(o) {
     return `<span class="badge badge--type">${orderTypeChip(o.order_type)}</span>`;
   }
@@ -501,10 +620,9 @@
   function timelineHtml(o) {
     if (o.status === 'annullato') return `<p style="margin-top:.6rem"><span class="badge badge--annullato">Ordine annullato</span></p>`;
     const idx = STATUS_FLOW.indexOf(o.status);
-    return `<div class="timeline">${STATUS_FLOW.map((s, i) => {
-      const cls = i < idx ? 'done' : i === idx ? 'current done' : '';
-      const icon = i < idx ? '✓' : (i + 1);
-      return `<div class="timeline__step ${cls}"><div class="timeline__dot">${icon}</div>${statusLabelFor(o.order_type, s)}</div>`;
+    return `<div class="progress-bar">${STATUS_FLOW.map((s, i) => {
+      const cls = i <= idx ? 'done' : '';
+      return `<div class="progress-step ${i === idx ? 'current' : ''} ${cls}"></div>`;
     }).join('')}</div>`;
   }
 
@@ -516,7 +634,7 @@
       list.querySelector('#goLogin').addEventListener('click', () => showView('account'));
       return;
     }
-    list.innerHTML = `<div class="empty-state">Caricamento…</div>`;
+    list.innerHTML = `<div class="empty-state">Caricamento&hellip;</div>`;
     try {
       const { orders } = await API.get('/api/orders/mine');
       if (orders.length === 0) {
@@ -526,21 +644,20 @@
         return;
       }
       list.innerHTML = orders.map((o) => `
-        <div class="order-card">
-          <div class="order-card__head">
+        <div class="order-summary">
+          <div class="order-summary__header">
             <span class="order-card__id">Ordine #${o.id}</span>
-            <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+            <div style="display:flex;gap:.35rem;flex-wrap:wrap">
               ${orderTypeBadge(o)}
-              <span class="badge badge--${o.status}">${statusLabelFor(o.order_type, o.status)}</span>
-              <span class="badge badge--${o.payment_method}">${o.payment_method === 'carta' ? ICON('ic-card') + ' Carta' : ICON('ic-cash') + ' Contanti'}</span>
-              <span class="badge badge--${o.payment_status}">${PAYMENT_LABELS[o.payment_status]}</span>
+              <span class="status-badge status-${o.status}">${statusLabelFor(o.order_type, o.status)}</span>
+              <span class="status-badge" style="background:rgba(61,40,23,.06);color:var(--brown);font-size:.7rem">${o.payment_method === 'carta' ? ICON('ic-card') + ' Carta' : ICON('ic-cash') + ' Contanti'}</span>
             </div>
           </div>
           <small class="muted">${formatDate(o.created_at)} · ${orderTypeLine(o)}</small>
-          <ul class="order-items-list">
-            ${o.items.map((i) => `<li><span>${i.quantity}× ${escapeHtml(i.pizza_name)}</span><span>${euro(i.unit_price * i.quantity)}</span></li>`).join('')}
-            <li style="font-weight:700;color:var(--ink);border-top:1px solid var(--line);padding-top:.4rem;margin-top:.2rem"><span>Totale</span><span>${euro(o.total)}</span></li>
-          </ul>
+          <div class="order-summary__items">
+            ${o.items.map((i) => `<div class="summary-row"><span>${i.quantity}&times; ${escapeHtml(i.product_name)}</span><span>${euro(i.unit_price * i.quantity)}</span></div>`).join('')}
+          </div>
+          <div class="order-summary__total">Totale ${euro(o.total)}</div>
           ${timelineHtml(o)}
         </div>`).join('');
     } catch (e) {
@@ -549,7 +666,6 @@
     }
   }
 
-  // ── Account: login / registrazione / profilo ──────────────────────────────
   function renderAccount() {
     const area = document.getElementById('accountArea');
     const user = currentUser();
@@ -564,16 +680,23 @@
           <button class="btn btn--primary" id="saveProfile">Salva modifiche</button>
           <button class="btn btn--ghost" id="logoutBtn" style="margin-left:.5rem">Esci</button>
           <hr style="border:0;border-top:1px solid var(--line);margin:1.4rem 0" />
-          <button class="btn btn--green btn--block" id="goOrders">${ICON('ic-package')} Vedi i miei ordini</button>
+          <h4 style="font-weight:600;color:var(--brown);text-transform:none;letter-spacing:0;margin-bottom:.8rem">Cambia password</h4>
+          <div id="pwFormError" class="form-error"></div>
+          <div class="field"><label>Password attuale</label><input type="password" id="pfCurrPass" placeholder="••••••" /></div>
+          <div class="field"><label>Nuova password</label><input type="password" id="pfNewPass" placeholder="almeno 6 caratteri" /></div>
+          <button class="btn btn--olive" id="changePassBtn">Aggiorna password</button>
+          <hr style="border:0;border-top:1px solid var(--line);margin:1.4rem 0" />
+          <button class="btn btn--olive btn--block" id="goOrders">${ICON('ic-package')} Vedi i miei ordini</button>
         </div>`;
       area.querySelector('#saveProfile').addEventListener('click', saveProfile);
       area.querySelector('#logoutBtn').addEventListener('click', logout);
+      area.querySelector('#changePassBtn').addEventListener('click', changePassword);
       area.querySelector('#goOrders').addEventListener('click', () => showView('orders'));
       return;
     }
     area.innerHTML = `
       <div class="panel">
-        <div class="tabs">
+        <div class="auth-tabs">
           <button class="is-active" data-tab="login">Accedi</button>
           <button data-tab="register">Registrati</button>
         </div>
@@ -581,10 +704,10 @@
           <div class="field"><label>Email</label><input type="email" id="liEmail" placeholder="tu@email.it" required /></div>
           <div class="field"><label>Password</label><input type="password" id="liPass" placeholder="••••••" required /></div>
           <button class="btn btn--primary btn--block btn--lg" type="submit">Accedi</button>
-          <p class="muted" style="font-size:.8rem;margin-top:.8rem;text-align:center">Demo: mario@example.com / mario123</p>
+          <p class="muted" style="font-size:.8rem;margin-top:.8rem;text-align:center">Demo: marta@example.com / marta123</p>
         </form>
         <form id="registerForm" class="hidden">
-          <div class="field"><label>Nome e cognome</label><input id="rgName" placeholder="Mario Rossi" required /></div>
+          <div class="field"><label>Nome e cognome</label><input id="rgName" placeholder="Marta Bianchi" required /></div>
           <div class="field"><label>Email</label><input type="email" id="rgEmail" placeholder="tu@email.it" required /></div>
           <div class="field"><label>Password</label><input type="password" id="rgPass" placeholder="almeno 6 caratteri" required /></div>
           <div class="field"><label>Indirizzo (facoltativo)</label><input id="rgAddr" placeholder="Via, civico, città" /></div>
@@ -593,7 +716,7 @@
         </form>
       </div>`;
 
-    const tabs = area.querySelectorAll('.tabs button');
+    const tabs = area.querySelectorAll('.auth-tabs button');
     tabs.forEach((t) => t.addEventListener('click', () => {
       tabs.forEach((x) => x.classList.toggle('is-active', x === t));
       area.querySelector('#loginForm').classList.toggle('hidden', t.dataset.tab !== 'login');
@@ -635,6 +758,7 @@
   }
 
   function afterAuth() {
+    renderAdminBar();
     if (state.pendingCheckout && state.cart.length > 0) {
       state.pendingCheckout = false;
       goCheckout();
@@ -657,11 +781,25 @@
     } catch (err) { toast(err.message, 'error'); }
   }
 
-  function logout() {
-    clearAuth(); updateAuthUI(); toast('Disconnesso.', 'info'); showView('menu');
+  async function changePassword() {
+    const errEl = document.getElementById('pwFormError');
+    errEl.textContent = '';
+    const curr = document.getElementById('pfCurrPass').value;
+    const next = document.getElementById('pfNewPass').value;
+    if (!curr) { errEl.textContent = 'Inserisci la password attuale.'; return; }
+    if (!next || next.length < 6) { errEl.textContent = 'La nuova password deve avere almeno 6 caratteri.'; return; }
+    try {
+      await API.put('/api/auth/me/password', { currentPassword: curr, newPassword: next });
+      document.getElementById('pfCurrPass').value = '';
+      document.getElementById('pfNewPass').value = '';
+      toast('Password aggiornata con successo.', 'success');
+    } catch (e) { errEl.textContent = e.message; }
   }
 
-  // ── Verifica token all'avvio ──────────────────────────────────────────────
+  function logout() {
+    clearAuth(); updateAuthUI(); renderAdminBar(); closeProfileDropdown(); toast('Disconnesso.', 'info'); showView('menu');
+  }
+
   async function refreshUser() {
     if (!API.token()) return;
     try {
@@ -672,9 +810,190 @@
     }
   }
 
-  // ── Avvio ─────────────────────────────────────────────────────────────────
+  function isAdmin() {
+    const u = currentUser();
+    return u && u.role === 'admin';
+  }
+
+  function renderAdminBar() {
+    const toolbar = document.querySelector('.toolbar');
+    if (!toolbar) return;
+    const existing = document.getElementById('adminAddBtn');
+    if (isAdmin()) {
+      toolbar.classList.add('toolbar--admin');
+      if (!existing) {
+        const b = document.createElement('button');
+        b.id = 'adminAddBtn';
+        b.className = 'btn btn--olive btn--sm';
+        b.textContent = '\uFF0B Nuovo prodotto';
+        b.style.flexShrink = '0';
+        b.addEventListener('click', () => openProductModal(null));
+        toolbar.appendChild(b);
+      }
+    } else {
+      toolbar.classList.remove('toolbar--admin');
+      if (existing) existing.remove();
+    }
+    renderGrid(true);
+  }
+
+  let galleryImages = [];
+  let dragIdx = -1;
+
+  function renderGallery() {
+    const list = document.getElementById('pzGalleryList');
+    const label = document.getElementById('pzGalleryLabel');
+    if (!list) return;
+    if (label) label.style.display = galleryImages.length > 0 ? '' : 'none';
+    list.innerHTML = galleryImages.map((url, i) =>
+      '<div class="gallery-thumb' + (i === 0 ? ' is-cover' : '') + '" draggable="true" data-idx="' + i + '">' +
+        '<img src="' + url + '" alt="" loading="lazy" onerror="this.style.opacity=\'.3\'" />' +
+        (i === 0 ? '<span class="gallery-thumb__badge">Copertina</span>' : '<span class="gallery-thumb__remove" data-idx="' + i + '" draggable="false">&times;</span>') +
+      '</div>'
+    ).join('');
+    window._galleryRef = galleryImages;
+  }
+
+  function setupGalleryDelegation() {
+    const list = document.getElementById('pzGalleryList');
+    if (!list || list.dataset.galleryInit) return;
+    list.dataset.galleryInit = '1';
+
+    list.addEventListener('click', function(e) {
+      const rm = e.target.closest('.gallery-thumb__remove');
+      if (!rm) return;
+      e.stopPropagation();
+      galleryImages.splice(Number(rm.dataset.idx), 1);
+      renderGallery();
+    });
+
+    list.addEventListener('dragstart', function(e) {
+      const thumb = e.target.closest('.gallery-thumb');
+      if (!thumb) return;
+      dragIdx = Number(thumb.dataset.idx);
+      e.dataTransfer.setData('text/plain', dragIdx);
+      e.dataTransfer.effectAllowed = 'move';
+      thumb.style.opacity = '.5';
+    });
+
+    list.addEventListener('dragend', function() {
+      dragIdx = -1;
+      list.querySelectorAll('.gallery-thumb').forEach(function(t) { t.style.opacity = '1'; });
+      list.querySelectorAll('.drag-over').forEach(function(t) { t.classList.remove('drag-over'); });
+    });
+
+    list.addEventListener('dragover', function(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+
+    list.addEventListener('dragenter', function(e) {
+      const thumb = e.target.closest('.gallery-thumb');
+      if (thumb) thumb.classList.add('drag-over');
+    });
+
+    list.addEventListener('dragleave', function(e) {
+      const thumb = e.target.closest('.gallery-thumb');
+      if (thumb) thumb.classList.remove('drag-over');
+    });
+
+    list.addEventListener('drop', function(e) {
+      e.preventDefault();
+      const thumb = e.target.closest('.gallery-thumb');
+      list.querySelectorAll('.drag-over').forEach(function(t) { t.classList.remove('drag-over'); });
+      if (!thumb || dragIdx < 0) return;
+      const to = Number(thumb.dataset.idx);
+      if (dragIdx !== to) {
+        var item = galleryImages.splice(dragIdx, 1)[0];
+        galleryImages.splice(to, 0, item);
+        renderGallery();
+      }
+    });
+  }
+
+  function handleImageFiles() {
+    const input = document.getElementById('pzImageFile');
+    if (!input || !input.files || input.files.length === 0) return;
+    const files = Array.from(input.files).filter(f => f.type.startsWith('image/'));
+    if (files.length === 0) { if (input) input.value = ''; return; }
+    let loaded = 0;
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = function() {
+        galleryImages.push(reader.result);
+        loaded++;
+        if (loaded >= files.length) { if (input) input.value = ''; renderGallery(); }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function openProductModal(product) {
+    document.getElementById('productFormError').textContent = '';
+    document.getElementById('productModalTitle').textContent = product ? 'Modifica prodotto' : 'Nuovo prodotto';
+    document.getElementById('pzId').value = product ? product.id : '';
+    document.getElementById('pzName').value = product ? product.name : '';
+    document.getElementById('pzDesc').value = product ? product.description : '';
+    document.getElementById('pzPrice').value = product ? (product.price / 100).toFixed(2) : '';
+    document.getElementById('pzCat').value = product ? product.category : 'pani';
+    document.getElementById('pzQuantity').value = product ? (product.quantity ?? 0) : 0;
+    document.getElementById('pzAvail').checked = product ? !!product.available : true;
+    try {
+      galleryImages = product && product.images ? JSON.parse(product.images) : (product && product.image ? [product.image] : []);
+    } catch { galleryImages = product && product.image ? [product.image] : []; }
+    renderGallery();
+    document.getElementById('productModalOverlay').classList.add('is-open');
+  }
+
+  function closeProductModal() {
+    document.getElementById('productModalOverlay').classList.remove('is-open');
+  }
+
+  async function saveProduct() {
+    const id = document.getElementById('pzId').value;
+    const euros = parseFloat(document.getElementById('pzPrice').value);
+    if (!document.getElementById('pzName').value.trim()) {
+      document.getElementById('productFormError').textContent = 'Inserisci il nome.'; return;
+    }
+    if (!Number.isFinite(euros) || euros < 0) {
+      document.getElementById('productFormError').textContent = 'Prezzo non valido.'; return;
+    }
+    const payload = {
+      name: document.getElementById('pzName').value.trim(),
+      description: document.getElementById('pzDesc').value.trim(),
+      price: Math.round(euros * 100),
+      category: document.getElementById('pzCat').value,
+      quantity: parseInt(document.getElementById('pzQuantity').value) || 0,
+      images: galleryImages,
+      available: document.getElementById('pzAvail').checked,
+    };
+    try {
+      if (id) await API.put(`/api/products/${id}`, payload);
+      else await API.post('/api/products', payload);
+      toast('Prodotto salvato.', 'success');
+      closeProductModal();
+      await reloadProducts();
+    } catch (e) { document.getElementById('productFormError').textContent = e.message; }
+  }
+
+  async function deleteProduct(id) {
+    const p = state.products.find((x) => x.id === id);
+    if (!p || !confirm(`Eliminare "${p.name}" dal menu?`)) return;
+    try {
+      await API.del(`/api/products/${id}`);
+      toast('Prodotto eliminato.', 'info');
+      await reloadProducts();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function reloadProducts() {
+    try {
+      const { products } = await API.get('/api/products');
+      state.products = products.sort((a, b) =>
+        catRank(a.category) - catRank(b.category) || a.name.localeCompare(b.name));
+      renderPills();
+      renderGrid(true);
+    } catch (e) { toast('Errore nel ricaricare il menu.', 'error'); }
+  }
+
   async function init() {
-    // Navigazione
     document.querySelectorAll('[data-nav]').forEach((el) =>
       el.addEventListener('click', (e) => { e.preventDefault(); showView(el.dataset.nav); }));
     document.getElementById('cartBtn').addEventListener('click', openCart);
@@ -685,7 +1004,6 @@
       state.search = e.target.value; renderGrid(true);
     });
 
-    // Metodi di pagamento
     document.querySelectorAll('.pay-option').forEach((opt) =>
       opt.addEventListener('click', () => {
         document.querySelectorAll('.pay-option').forEach((o) => o.classList.remove('is-active'));
@@ -695,12 +1013,10 @@
         if (currentView() === 'checkout') renderCheckoutSummary();
       }));
 
-    // Tipo di ordine: consegna / asporto / tavolo
     document.querySelectorAll('.order-type').forEach((opt) =>
       opt.addEventListener('click', () => setOrderType(opt.dataset.type)));
     setOrderType('consegna');
 
-    // Pulsanti/link che scorrono alle sezioni della homepage
     document.querySelectorAll('[data-scroll]').forEach((b) =>
       b.addEventListener('click', (e) => {
         e.preventDefault();
@@ -714,22 +1030,47 @@
     setupCardInputs();
     updateAuthUI();
 
-    // Carica configurazione + menu (con retry in caso di cold start)
+    const profileBtn = document.getElementById('profileBtn');
+    const profileDropdown = document.getElementById('profileDropdown');
+    if (profileBtn) {
+      profileBtn.addEventListener('click', function(e) { e.stopPropagation(); toggleProfileDropdown(); });
+    }
+    document.addEventListener('click', function(e) {
+      if (profileDropdown && !profileDropdown.contains(e.target) && e.target !== profileBtn) {
+        closeProfileDropdown();
+      }
+    });
+    if (profileDropdown) {
+      profileDropdown.querySelectorAll('[data-nav]').forEach(function(el) {
+        el.addEventListener('click', function() { closeProfileDropdown(); showView(el.dataset.nav); });
+      });
+      const pdLogout = document.getElementById('pdLogout');
+      if (pdLogout) pdLogout.addEventListener('click', logout);
+    }
+
+    document.getElementById('closeProductModal').addEventListener('click', closeProductModal);
+    document.getElementById('saveProductBtn').addEventListener('click', saveProduct);
+    document.getElementById('productModalOverlay').addEventListener('click', (e) => {
+      if (e.target.id === 'productModalOverlay') closeProductModal();
+    });
+    const fileInput = document.getElementById('pzImageFile');
+    if (fileInput) fileInput.addEventListener('change', handleImageFiles);
+    setupGalleryDelegation();
+
     let retries = 3;
     while (retries > 0) {
       try {
-        const [cfg, pizzasData] = await Promise.all([API.get('/api/config'), API.get('/api/pizzas')]);
+        const [cfg, data] = await Promise.all([API.get('/api/config'), API.get('/api/products')]);
         state.config = cfg;
-        // Ordina per categoria (pizze, kebab, hamburger, contorni) e poi per nome.
-        state.pizzas = pizzasData.pizzas.sort((a, b) =>
+        state.products = data.products.sort((a, b) =>
           catRank(a.category) - catRank(b.category) || a.name.localeCompare(b.name));
-        console.log('✅ Menu caricato:', state.pizzas.length, 'prodotti');
+        console.log('Menu caricato:', state.products.length, 'prodotti');
         break;
       } catch (e) {
         retries--;
-        console.error(`❌ Errore caricamento menu (${retries} tentativi rimasti):`, e);
+        console.error(`Errore caricamento menu (${retries} tentativi rimasti):`, e);
         if (retries === 0) toast('Impossibile caricare il menu. Riprova ricaricando la pagina.', 'error');
-        else await new Promise(r => setTimeout(r, 2000)); // Aspetta 2 secondi prima di riprovare
+        else await new Promise(r => setTimeout(r, 2000));
       }
     }
 
@@ -738,11 +1079,12 @@
     refreshCartUI();
     await refreshUser();
     updateAuthUI();
+    renderAdminBar();
     showView('menu');
     setupAnimations();
+    setupCookieBanner();
   }
 
-  // ── Animazioni: reveal allo scroll + header + mappa lazy ───────────────────
   function setupAnimations() {
     const header = document.querySelector('.site-header');
     if (header) {
@@ -751,11 +1093,16 @@
       onScroll();
     }
 
-    // La mappa Google si carica solo quando ci si avvicina ai contatti (più veloce).
     const mapFrame = document.querySelector('.contact__map iframe[data-src]');
     const loadMap = () => { if (mapFrame && !mapFrame.src) mapFrame.src = mapFrame.dataset.src; };
+    const mapOverlay = document.getElementById('mapOverlay');
+    if (mapOverlay) {
+      mapOverlay.addEventListener('click', () => {
+        mapOverlay.classList.add('is-hidden');
+        loadMap();
+      });
+    }
 
-    // Carica la mappa al primo scroll dell'utente (affidabile e leggero).
     const onceScrollMap = () => { loadMap(); window.removeEventListener('scroll', onceScrollMap); };
     window.addEventListener('scroll', onceScrollMap, { passive: true, once: true });
 
@@ -773,8 +1120,6 @@
     }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
     els.forEach((e) => io.observe(e));
 
-    // Rete di sicurezza: se l'observer non scatta (ambienti particolari),
-    // mostra comunque tutto dopo poco, così il contenuto non resta mai invisibile.
     setTimeout(revealAll, 1600);
 
     if (mapFrame) {
@@ -783,6 +1128,39 @@
       }, { rootMargin: '400px' });
       mapIo.observe(mapFrame);
     }
+  }
+
+  function setupCookieBanner() {
+    const banner = document.getElementById('cookieBanner');
+    if (!banner) return;
+    const stored = localStorage.getItem('forno_cookie_consent');
+    if (stored) return;
+    banner.classList.add('is-open');
+
+    function saveConsent(analytics, marketing) {
+      localStorage.setItem('forno_cookie_consent', JSON.stringify({
+        necessary: true, analytics, marketing, date: new Date().toISOString()
+      }));
+      banner.classList.remove('is-open');
+    }
+
+    document.getElementById('acceptAllCookies').addEventListener('click', () => saveConsent(true, true));
+    document.getElementById('manageCookies').addEventListener('click', () => {
+      document.getElementById('cookieDetails').classList.toggle('is-open');
+    });
+    document.getElementById('saveCookies').addEventListener('click', () => {
+      saveConsent(
+        document.getElementById('cookieAnalytics').checked,
+        document.getElementById('cookieMarketing').checked
+      );
+    });
+  }
+
+  function toggleProfileDropdown() {
+    document.getElementById('profileDropdown').classList.toggle('is-open');
+  }
+  function closeProfileDropdown() {
+    document.getElementById('profileDropdown').classList.remove('is-open');
   }
 
   document.addEventListener('DOMContentLoaded', init);

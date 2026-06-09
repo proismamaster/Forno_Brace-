@@ -1,153 +1,99 @@
-# 🥙 Bella Istanbul — Turkish Kebap · Pizza · Grill
+# Forno Brace
 
-Sito completo per **Bella Istanbul** (Via Libertà 27, Lodi Vecchio), con **lato cliente**
-(ordini e pagamento) e **lato amministratore** (gestione ordini e menu). Kebab turco halal,
-pizza nel forno a legna e specialità grill, con consegna a domicilio, asporto o al tavolo.
-Funziona su **telefono e PC**. Contatti: 327 276 9750 · 329 350 6964 (WhatsApp).
+A **full-stack** website for an artisan bakery with an online ordering system, built with Node.js, Express, and SQLite.
 
-- Backend: **Node.js + Express**
-- Database: **SQLite** (file locale `pizzeria.db`, nessuna installazione esterna)
-- Autenticazione: **JWT** con ruoli `user` / `admin`
-- Pagamenti: **contanti** alla consegna + **carta (Stripe simulato)**
+## Description
 
----
+Forno Brace is a complete web application for an artisan bakery located at Via dei Forni 14, Milan (Porta Romana district). The site allows customers to browse the menu, build an order, and complete checkout with home delivery, pickup, or dine-in options. It includes an admin panel with real-time order monitoring and menu management.
 
-## ▶️ Avvio rapido
+The design follows a warm artisanal palette (cream, brown, terracotta) with refined typography, inspired by the authentic atmosphere of a wood-fired oven bakery.
 
-Servono solo **Node.js 18+** (già presente sul tuo PC: v22).
+## Goals
 
-```bash
-npm install      # installa le dipendenze (già fatto)
-npm start        # avvia il server
-```
+- Provide an **intuitive online ordering system** for an artisan shop
+- Support **three service modes**: home delivery, pickup, and dine-in
+- Offer a **reactive admin panel** with real-time notifications for order management
+- Create a **professional and authentic** design, far from template aesthetics
+- Be **easily deployable** on cloud platforms (Render) via blueprint configuration
 
-Poi apri il browser:
+## Key Features
 
-| Cosa | Indirizzo |
-|------|-----------|
-| 🛒 Sito clienti | http://localhost:3000 |
-| 👨‍🍳 Pannello admin | http://localhost:3000/admin |
+### Customer Site
+- **Hero section** with animated product ticker
+- **Product menu** with category filter, text search, image carousel, quantity stepper
+- **Persistent cart** in localStorage with subtotal, delivery fee, and total
+- **Checkout** with service mode selection (delivery, pickup, dine-in), data form, payment method
+- **Simulated card payment** (ready for real Stripe integration)
+- **Order confirmation** with animated confetti effect
+- **Authentication** (register, login, editable profile, password change)
+- **Order history** with 4-step progress bar and adaptive labels
+- **Informational sections**: About Us, Gallery, How It Works, Contacts with map
+- **GDPR cookie banner** with granular consent
+- **WhatsApp FAB** and direct link in header
 
-Al primo avvio il database viene creato e popolato automaticamente con
-il menu completo (pizze, kebab, hamburger, contorni), un account admin e un utente demo.
+### Admin Panel
+- **Dashboard** with statistics: today's orders, today's revenue, orders in progress, total revenue
+- **Order management** with status filter, detailed cards, status change, mark as paid
+- **Real-time notifications**: 5-second polling, Web Audio API sound, desktop notification, blinking title
+- **Menu CRUD**: add/edit/delete products, multi-image upload with drag-and-drop
+- **Gallery manager** for product images with thumbnails and "Cover" badge
 
-### Account già pronti
+### Backend REST API
+- **20+ endpoints** for authentication, products, orders, statistics
+- **JWT middleware** for authentication and role protection (requireAuth, requireAdmin)
+- **Server-side validation** for all inputs
+- **SQLite transactions** for atomic order creation
+- **Automatic calculation** of delivery fee with configurable free threshold
 
-| Ruolo | Email | Password |
-|-------|-------|----------|
-| **Admin** | `admin@pizzeria.it` | `admin123` |
-| **Cliente demo** | `mario@example.com` | `mario123` |
+## Technologies
 
-Puoi anche **registrare** un nuovo cliente dal sito.
+| Category | Technology |
+|---|---|
+| **Runtime** | Node.js 22.x |
+| **Framework** | Express 4.21 |
+| **Database** | SQLite with better-sqlite3 (WAL mode) |
+| **Authentication** | JWT (jsonwebtoken) + bcryptjs |
+| **Frontend** | HTML5, CSS3, vanilla JavaScript (no framework) |
+| **Font** | Fraunces + Source Serif 4 (Google Fonts) |
+| **Icons** | Inline SVG sprite |
+| **Web APIs** | Canvas (confetti), Web Audio, Notification, IntersectionObserver, Drag & Drop, FileReader |
+| **Deployment** | Render (render.yaml blueprint) |
 
----
-
-## 🌐 Pubblicare online (Render)
-
-Il sito è pronto per essere pubblicato **gratis** su **[Render](https://render.com)**,
-che esegue Node.js e il database (a differenza di GitHub Pages, che ospita solo file statici).
-
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/proismamaster/pizzeriaTesting)
-
-**Passaggi:**
-
-1. Clicca il pulsante qui sopra (oppure su Render: **New +** → **Blueprint**).
-2. Accedi con **GitHub** e autorizza Render ad accedere al repository.
-3. Render legge il file [`render.yaml`](render.yaml) e configura tutto da solo:
-   build (`npm install`), avvio (`npm start`) e un `JWT_SECRET` generato in automatico.
-4. *(Consigliato)* Imposta la variabile **`ADMIN_PASSWORD`** con una password a tua
-   scelta. Se la lasci vuota viene usata quella di default (`admin123`).
-5. Clicca **Apply** e attendi qualche minuto: otterrai un link pubblico, tipo
-   `https://pizzeria-bella-napoli.onrender.com`.
-
-> ℹ️ **Piano gratuito:** il servizio va in pausa dopo ~15 minuti di inattività e
-> si riattiva al primo accesso (qualche secondo). Il database SQLite è temporaneo
-> e si ripopola da solo (menu, admin, demo) a ogni riavvio — perfetto per una demo.
-
----
-
-## 💳 Come provare il pagamento con carta
-
-Nel checkout scegli **"Carta di credito"** e usa una di queste carte di test
-(cliccabili direttamente nella finestra di pagamento):
-
-| Numero carta | Esito |
-|--------------|-------|
-| `4242 4242 4242 4242` | ✅ Pagamento approvato |
-| `4000 0000 0000 0002` | ❌ Carta rifiutata |
-| `4000 0000 0000 9995` | ❌ Fondi insufficienti |
-
-Scadenza: una qualsiasi futura (es. `12/27`) · CVC: 3 cifre (es. `123`).
-
-> ⚠️ I pagamenti sono **simulati**: nessun addebito reale e nessun dato inviato a
-> server esterni. Il codice è già predisposto per collegare lo Stripe vero
-> (vedi i commenti in [`payments.js`](payments.js)).
-
----
-
-## 🔁 Il flusso completo
-
-1. Il **cliente** sfoglia il menu, aggiunge pizze al carrello e va al checkout.
-2. Sceglie **contanti** o **carta** e conferma l'ordine.
-3. L'ordine viene salvato nel database con stato **"Ricevuto"**.
-4. Nel **pannello admin** l'ordine compare **automaticamente** (con suono e notifica).
-5. L'admin avanza lo stato: Ricevuto → In preparazione → In consegna → Consegnato.
-6. Il cliente vede lo stato aggiornarsi nella sezione **"I miei ordini"**.
-
----
-
-## ✨ Funzionalità
-
-**Lato cliente**
-- Registrazione e login
-- Menu con categorie, ricerca e schede pizza
-- Carrello persistente (resta anche se ricarichi la pagina)
-- Checkout con dati di consegna salvati nel profilo
-- Pagamento contanti o carta (finestra in stile Stripe)
-- Storico ordini con barra di avanzamento dello stato
-- Profilo modificabile
-
-**Lato admin**
-- Dashboard con statistiche (ordini e incassi)
-- Elenco ordini in tempo reale con notifica dei nuovi ordini
-- Filtro per stato e avanzamento con un clic
-- Segna come pagato gli ordini in contanti
-- Gestione completa del menu (aggiungi, modifica, attiva/disattiva, elimina)
-
-**Tecniche**
-- Design responsive (mobile-first) con barra di navigazione mobile
-- Password cifrate (bcrypt), API protette per ruolo
-- Prezzi gestiti in centesimi (niente errori di arrotondamento)
-
----
-
-## 🛠️ Comandi utili
-
-```bash
-npm start            # avvia in produzione
-npm run dev          # avvia con riavvio automatico ad ogni modifica
-npm run seed         # ripopola il menu se il database è vuoto
-npm run reset        # AZZERA il database e lo ripopola da zero
-```
-
-Per cambiare porta, credenziali admin o costi di consegna, modifica
-[`config.js`](config.js) (oppure usa le variabili d'ambiente).
-
----
-
-## 📁 Struttura del progetto
+## Project Structure
 
 ```
-Pizzeria/
-├── server.js        API REST + avvio server
-├── db.js            connessione SQLite + schema tabelle
-├── seed.js          dati iniziali (pizze, admin, demo)
-├── auth.js          token JWT e protezione delle rotte
-├── payments.js      simulatore pagamento carta (stile Stripe)
-├── config.js        configurazione (porta, segreti, consegna)
-└── public/
-    ├── index.html   sito clienti
-    ├── admin.html   pannello amministratore
-    ├── css/style.css
-    └── js/          common.js · app.js · admin.js
+Forno_Brace/
+├── server.js                # Express server + REST API
+├── auth.js                  # JWT and authentication middleware
+├── config.js                # App configuration
+├── db.js                    # SQLite connection + schema
+├── seed.js                  # Initial database seeding
+├── payments.js              # Card payment simulator
+├── package.json             # npm dependencies
+├── render.yaml              # Render deploy blueprint
+├── forno.db                 # SQLite database
+├── public/
+│   ├── index.html           # Customer site
+│   ├── admin.html           # Admin panel
+│   ├── privacy.html         # Privacy policy
+│   ├── cookie-policy.html   # Cookie policy
+│   ├── css/style.css        # Complete design system
+│   └── js/
+│       ├── common.js        # API client, utilities
+│       ├── app.js           # Customer logic
+│       └── admin.js         # Admin logic
+└── graphify-out/            # Code analysis report
 ```
+
+## Future Improvements
+
+- **Real Stripe integration** (simulator already in place)
+- **Inventory tracking** with quantity management
+- **Push notifications** with background service worker
+- **PWA** with installability and offline caching
+- **Advanced analytics dashboard** with charts and trends
+- **Loyalty program** for returning customers
+- **Docker** for flexible deployment
+- **PostgreSQL migration** for scalability
+- **Automated tests** with a testing framework
+- **Automatic order confirmation emails**
