@@ -7,8 +7,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "seed": "node seed.js",
-    "reset": "node seed.js --reset",
-    "build": "node -e \"const fs=require('fs'),p=require('path'),d='dist';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d);['server.js','auth.js','config.js','db.js','payments.js','seed.js','package.json','package-lock.json','render.yaml'].forEach(f=>fs.copyFileSync(f,p.join(d,f)));fs.cpSync('public',p.join(d,'public'),{recursive:true});console.log('dist ready')\""
+    "reset": "node seed.js --reset"
   },
   "keywords": [
     "bakery",
@@ -21,14 +20,11 @@
   "license": "MIT",
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^12.10.0",
+    "better-sqlite3": "^11.8.1",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2"
   },
   "engines": {
     "node": "22.x"
-  },
-  "allowScripts": {
-    "better-sqlite3@12.10.0": true
   }
 }
