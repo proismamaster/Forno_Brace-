@@ -244,7 +244,7 @@
           <td>
             <div style="display:flex;align-items:center;gap:.7rem">
               ${p.image
-                ? `<img src="${p.image}" alt="" style="width:48px;height:48px;border-radius:10px;object-fit:cover;flex:none" onerror="this.style.display='none'" />`
+                ? `<img src="${escapeHtml(p.image)}" alt="" style="width:48px;height:48px;border-radius:10px;object-fit:cover;flex:none" onerror="this.style.display='none'" />`
                 : `<span style="font-size:1.6rem;width:48px;text-align:center">${p.emoji}</span>`}
               <div><b>${escapeHtml(p.name)}</b><br><small class="muted">${escapeHtml(p.description)}</small></div>
             </div>
@@ -286,7 +286,7 @@
     if (label) label.style.display = galleryImages.length > 0 ? '' : 'none';
     list.innerHTML = galleryImages.map((url, i) =>
       '<div class="gallery-thumb' + (i === 0 ? ' is-cover' : '') + '" draggable="true" data-idx="' + i + '">' +
-        '<img src="' + url + '" alt="" loading="lazy" onerror="this.style.opacity=\'.3\'" />' +
+        '<img src="' + escapeHtml(url) + '" alt="" loading="lazy" onerror="this.style.opacity=\'.3\'" />' +
         (i === 0 ? '<span class="gallery-thumb__badge">Copertina</span>' : '<span class="gallery-thumb__remove" data-idx="' + i + '" draggable="false">&times;</span>') +
       '</div>'
     ).join('');

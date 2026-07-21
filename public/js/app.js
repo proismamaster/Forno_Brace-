@@ -184,9 +184,9 @@
       if (gallery.length === 0 && p.image) gallery = [p.image];
       if (gallery.length > 0) {
         if (gallery.length === 1) {
-          imgHtml = `<img src="${gallery[0]}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="var ci=this.parentElement.querySelector('.card__emoji');if(ci)ci.style.display='flex'" />`;
+          imgHtml = `<img src="${escapeHtml(gallery[0])}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="var ci=this.parentElement.querySelector('.card__emoji');if(ci)ci.style.display='flex'" />`;
         } else {
-          const slides = gallery.map((url, si) => `<div class="prod-carousel__slide"><img src="${url}" alt="${escapeHtml(p.name)}" loading="${si === 0 ? 'eager' : 'lazy'}" onerror="var s=this.parentElement.parentElement.parentElement;if(s&&s.querySelector('.card__emoji'))s.querySelector('.card__emoji').style.display='flex'" /></div>`).join('');
+          const slides = gallery.map((url, si) => `<div class="prod-carousel__slide"><img src="${escapeHtml(url)}" alt="${escapeHtml(p.name)}" loading="${si === 0 ? 'eager' : 'lazy'}" onerror="var s=this.parentElement.parentElement.parentElement;if(s&&s.querySelector('.card__emoji'))s.querySelector('.card__emoji').style.display='flex'" /></div>`).join('');
           const dots = gallery.map((_, di) => `<button class="prod-carousel__dot${di === 0 ? ' is-active' : ''}" data-idx="${di}" aria-label="Vai all'immagine ${di + 1}"></button>`).join('');
           imgHtml = `<div class="prod-carousel" data-carousel>
             <div class="prod-carousel__track">${slides}</div>
@@ -326,7 +326,7 @@
     body.innerHTML = state.cart.map((i) => `
       <div class="cart-line">
         <span class="cart-line__emoji">${i.image
-          ? `<img src="${i.image}" alt="" loading="lazy" onerror="this.remove()" />`
+          ? `<img src="${escapeHtml(i.image)}" alt="" loading="lazy" onerror="this.remove()" />`
           : (i.emoji || '')}</span>
         <div class="cart-line__main">
           <strong>${escapeHtml(i.name)}</strong>
