@@ -3,5 +3,7 @@ node_modules/
 *.db-shm
 *.db-wal
 .env
+.jwt-secret.local
+.admin-password.local
 npm-debug.log*
 .DS_Store
