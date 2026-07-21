@@ -26,7 +26,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/api/debug', (req, res) => {
+// Espone path del filesystem e dettagli interni: va protetto, non deve essere leggibile da chiunque.
+app.get('/api/debug', requireAdmin, (req, res) => {
   const fs = require('fs');
   const dbPath = path.join(__dirname, config.DB_FILE);
   const productsCount = db.prepare('SELECT COUNT(*) AS c FROM products').get().c;
@@ -45,6 +46,27 @@ app.get('/api/debug', (req, res) => {
     }
   });
 });
+
+// Rate limiting minimale, in memoria, per gli endpoint sensibili ai tentativi ripetuti
+// (login/registrazione): senza dipendenze esterne, blocca i brute-force più banali.
+const loginAttempts = new Map(); // ip -> { count, resetAt }
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minuti
+const RATE_LIMIT_MAX = 10;
+
+function rateLimitAuth(req, res, next) {
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  const now = Date.now();
+  const entry = loginAttempts.get(ip);
+  if (!entry || now > entry.resetAt) {
+    loginAttempts.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return next();
+  }
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return res.status(429).json({ error: 'Troppi tentativi. Riprova tra qualche minuto.' });
+  }
+  entry.count += 1;
+  next();
+}
 
 const STATUSES = ['ricevuto', 'in_preparazione', 'in_consegna', 'consegnato', 'annullato'];
 
@@ -68,6 +90,13 @@ function isEmail(s) {
   return typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 }
 
+// Le URL immagine finiscono come attributo src nell'HTML del negozio: accettiamo solo http(s)
+// o data-URI immagine, mai stringhe generiche (difesa in profondità, oltre all'escaping lato client).
+function isSafeImageUrl(u) {
+  if (typeof u !== 'string' || !u.trim()) return false;
+  return /^https?:\/\//i.test(u) || /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(u);
+}
+
 app.get('/api/config', (req, res) => {
   res.json({
     deliveryFee: config.DELIVERY_FEE,
@@ -75,7 +104,7 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-app.post('/api/auth/register', (req, res) => {
+app.post('/api/auth/register', rateLimitAuth, (req, res) => {
   const { name, email, password, address, phone } = req.body || {};
   if (!name || !name.trim()) return res.status(400).json({ error: 'Inserisci il tuo nome.' });
   if (!isEmail(email)) return res.status(400).json({ error: 'Email non valida.' });
@@ -95,7 +124,7 @@ app.post('/api/auth/register', (req, res) => {
   res.status(201).json({ token: signToken(user), user: publicUser(user) });
 });
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', rateLimitAuth, (req, res) => {
   const { email, password } = req.body || {};
   if (!isEmail(email) || !password) return res.status(400).json({ error: 'Email o password mancanti.' });
 
@@ -151,7 +180,7 @@ app.post('/api/products', requireAdmin, (req, res) => {
   const cents = Math.round(Number(price));
   if (!Number.isFinite(cents) || cents < 0) return res.status(400).json({ error: 'Prezzo non valido.' });
   let imgArr = [];
-  try { imgArr = Array.isArray(images) ? images.filter(u => typeof u === 'string' && u.trim()) : JSON.parse(images || '[]').filter(u => u && u.trim()); } catch { imgArr = []; }
+  try { imgArr = Array.isArray(images) ? images.filter(isSafeImageUrl) : JSON.parse(images || '[]').filter(isSafeImageUrl); } catch { imgArr = []; }
   const cover = imgArr.length > 0 ? imgArr[0] : '';
   const qty = Math.max(0, parseInt(quantity) || 0);
   const info = db.prepare(
@@ -170,11 +199,11 @@ app.put('/api/products/:id', requireAdmin, (req, res) => {
   if (!Number.isFinite(cents) || cents < 0) return res.status(400).json({ error: 'Prezzo non valido.' });
   let imgArr = [];
   if (images !== undefined) {
-    try { imgArr = Array.isArray(images) ? images.filter(u => typeof u === 'string' && u.trim()) : JSON.parse(images).filter(u => u && u.trim()); } catch { imgArr = []; }
+    try { imgArr = Array.isArray(images) ? images.filter(isSafeImageUrl) : JSON.parse(images).filter(isSafeImageUrl); } catch { imgArr = []; }
   } else {
     try { imgArr = JSON.parse(p.images || '[]'); } catch { imgArr = []; }
   }
-  const cover = image !== undefined ? image : (imgArr.length > 0 ? imgArr[0] : p.image);
+  const cover = image !== undefined ? (isSafeImageUrl(image) ? image : p.image) : (imgArr.length > 0 ? imgArr[0] : p.image);
   const qty = quantity === undefined ? p.quantity : Math.max(0, parseInt(quantity) || 0);
   db.prepare(
     `UPDATE products SET name = ?, description = ?, price = ?, category = ?, emoji = ?, image = ?, images = ?, available = ?, quantity = ?
@@ -343,20 +372,23 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
   });
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ error: 'Errore interno del server.' });
 });
 
-app.listen(config.PORT, () => {
-  console.log(`\nForno Brace · Pane lievitato come una volta`);
-  console.log(`    Sito:    http://localhost:${config.PORT}`);
-  console.log(`    Admin:   http://localhost:${config.PORT}/admin`);
-  console.log(`    Admin:   ${config.ADMIN_EMAIL} / ${config.ADMIN_PASSWORD}`);
-  console.log(`    Demo:    ${config.DEMO_EMAIL} / ${config.DEMO_PASSWORD}\n`);
-});
+module.exports = app;
+
+if (require.main === module) {
+  app.use(express.static(path.join(__dirname, 'public')));
+  app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+  app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+
+  app.listen(config.PORT, () => {
+    console.log(`\nForno Brace · Pane lievitato come una volta`);
+    console.log(`    Sito:    http://localhost:${config.PORT}`);
+    console.log(`    Admin:   http://localhost:${config.PORT}/admin`);
+    console.log(`    Admin:   ${config.ADMIN_EMAIL} / ${config.ADMIN_PASSWORD}`);
+    console.log(`    Demo:    ${config.DEMO_EMAIL} / ${config.DEMO_PASSWORD}\n`);
+  });
+}
