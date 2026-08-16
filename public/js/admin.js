@@ -245,7 +245,7 @@
             <div style="display:flex;align-items:center;gap:.7rem">
               ${p.image
                 ? `<img src="${escapeHtml(p.image)}" alt="" style="width:48px;height:48px;border-radius:10px;object-fit:cover;flex:none" onerror="this.style.display='none'" />`
-                : `<span style="font-size:1.6rem;width:48px;text-align:center">${p.emoji}</span>`}
+                : `<span style="font-size:1.6rem;width:48px;text-align:center">${escapeHtml(p.emoji)}</span>`}
               <div><b>${escapeHtml(p.name)}</b><br><small class="muted">${escapeHtml(p.description)}</small></div>
             </div>
           </td>

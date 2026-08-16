@@ -135,8 +135,10 @@
     const cats = ['tutte', ...present];
     const wrap = document.getElementById('categoryPills');
     wrap.innerHTML = cats.map((c) => {
-      const inner = c === 'tutte' ? 'Tutto il menu' : `${ICON(catIcon(c))} ${catLabel(c)}`;
-      return `<button class="pill ${c === state.category ? 'is-active' : ''}" data-cat="${c}">${inner}</button>`;
+      // La categoria arriva dal prodotto in DB: un admin (o una richiesta CSRF-ata
+      // contro di lui) potrebbe averci messo qualunque stringa, non solo le 4 note.
+      const inner = c === 'tutte' ? 'Tutto il menu' : `${ICON(catIcon(c))} ${escapeHtml(catLabel(c))}`;
+      return `<button class="pill ${c === state.category ? 'is-active' : ''}" data-cat="${escapeHtml(c)}">${inner}</button>`;
     }).join('');
     wrap.querySelectorAll('.pill').forEach((b) => b.addEventListener('click', () => {
       state.category = b.dataset.cat; renderPills(); renderGrid(true);
@@ -197,7 +199,7 @@
         }
       }
       const imgWrap = `<div class="card__img">
-        <span class="card__emoji" style="font-size:2.4rem;display:${imgHtml ? 'none' : 'flex'};align-items:center;justify-content:center;position:absolute;inset:0">${p.emoji}</span>
+        <span class="card__emoji" style="font-size:2.4rem;display:${imgHtml ? 'none' : 'flex'};align-items:center;justify-content:center;position:absolute;inset:0">${escapeHtml(p.emoji)}</span>
         ${imgHtml}
       </div>`;
 
@@ -847,7 +849,7 @@
     if (label) label.style.display = galleryImages.length > 0 ? '' : 'none';
     list.innerHTML = galleryImages.map((url, i) =>
       '<div class="gallery-thumb' + (i === 0 ? ' is-cover' : '') + '" draggable="true" data-idx="' + i + '">' +
-        '<img src="' + url + '" alt="" loading="lazy" onerror="this.style.opacity=\'.3\'" />' +
+        '<img src="' + escapeHtml(url) + '" alt="" loading="lazy" onerror="this.style.opacity=\'.3\'" />' +
         (i === 0 ? '<span class="gallery-thumb__badge">Copertina</span>' : '<span class="gallery-thumb__remove" data-idx="' + i + '" draggable="false">&times;</span>') +
       '</div>'
     ).join('');

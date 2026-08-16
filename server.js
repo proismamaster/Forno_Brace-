@@ -17,7 +17,20 @@ try {
 }
 
 const app = express();
+// Su Render (e dietro qualunque reverse proxy a un solo hop) req.ip altrimenti
+// risolverebbe sempre all'indirizzo del proxy, non del visitatore reale —
+// il rate limiter sotto finirebbe per trattare tutti i visitatori come un'unica IP.
+app.set('trust proxy', 1);
 app.use(express.json({ limit: '10mb' }));
+
+// Header di base (nessuna nuova dipendenza): non sostituiscono l'escaping già
+// fatto lato client, ma limitano il danno se un domani ne sfuggisse uno.
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
 
 app.use((req, res, next) => {
   if (!req.url.startsWith('/images') && !req.url.startsWith('/css') && !req.url.startsWith('/js')) {
@@ -92,10 +105,20 @@ function isEmail(s) {
 
 // Le URL immagine finiscono come attributo src nell'HTML del negozio: accettiamo solo http(s)
 // o data-URI immagine, mai stringhe generiche (difesa in profondità, oltre all'escaping lato client).
+// Ancorata a fine stringa (^...$, non solo un test di prefisso): senza il $, una stringa tipo
+// `https://x.com/a.png" onerror="...` passava comunque il controllo.
 function isSafeImageUrl(u) {
   if (typeof u !== 'string' || !u.trim()) return false;
-  return /^https?:\/\//i.test(u) || /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(u);
+  const s = u.trim();
+  return /^https?:\/\/[^\s"'<>]+$/i.test(s) || /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,[a-z0-9+/=]+$/i.test(s);
 }
+
+// L'emoji del prodotto e la categoria finiscono anche loro nell'HTML pubblico:
+// stesso principio, un allow-list stretto invece di accettare qualunque stringa.
+function isSafeEmoji(e) {
+  return typeof e === 'string' && e.length > 0 && e.length <= 8 && !/[<>&"'\n\r]/.test(e);
+}
+const ALLOWED_CATEGORIES = ['pani', 'dolci', 'piatti', 'bevande'];
 
 app.get('/api/config', (req, res) => {
   res.json({
@@ -107,9 +130,12 @@ app.get('/api/config', (req, res) => {
 app.post('/api/auth/register', rateLimitAuth, (req, res) => {
   const { name, email, password, address, phone } = req.body || {};
   if (!name || !name.trim()) return res.status(400).json({ error: 'Inserisci il tuo nome.' });
+  if (name.trim().length > 200) return res.status(400).json({ error: 'Nome troppo lungo.' });
   if (!isEmail(email)) return res.status(400).json({ error: 'Email non valida.' });
   if (!password || password.length < 6)
     return res.status(400).json({ error: 'La password deve avere almeno 6 caratteri.' });
+  if (address && address.length > 300) return res.status(400).json({ error: 'Indirizzo troppo lungo.' });
+  if (phone && phone.length > 40) return res.status(400).json({ error: 'Numero di telefono troppo lungo.' });
 
   const exists = db.prepare('SELECT 1 FROM users WHERE email = ?').get(email.toLowerCase());
   if (exists) return res.status(409).json({ error: 'Email già registrata.' });
@@ -152,7 +178,7 @@ app.put('/api/auth/me', requireAuth, (req, res) => {
   res.json({ user: publicUser(updated) });
 });
 
-app.put('/api/auth/me/password', requireAuth, (req, res) => {
+app.put('/api/auth/me/password', requireAuth, rateLimitAuth, (req, res) => {
   const { currentPassword, newPassword } = req.body || {};
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
   if (!user) return res.status(404).json({ error: 'Utente non trovato.' });
@@ -177,10 +203,17 @@ app.get('/api/products', (req, res) => {
 app.post('/api/products', requireAdmin, (req, res) => {
   const { name, description, price, category, emoji, images, available, quantity } = req.body || {};
   if (!name || !name.trim()) return res.status(400).json({ error: 'Nome obbligatorio.' });
+  if (name.trim().length > 200) return res.status(400).json({ error: 'Nome troppo lungo (max 200 caratteri).' });
+  if (description && description.length > 2000) return res.status(400).json({ error: 'Descrizione troppo lunga (max 2000 caratteri).' });
   const cents = Math.round(Number(price));
   if (!Number.isFinite(cents) || cents < 0) return res.status(400).json({ error: 'Prezzo non valido.' });
+  if (category !== undefined && category !== null && !ALLOWED_CATEGORIES.includes(category))
+    return res.status(400).json({ error: 'Categoria non valida.' });
+  if (emoji !== undefined && emoji !== null && emoji !== '' && !isSafeEmoji(emoji))
+    return res.status(400).json({ error: 'Emoji non valida.' });
   let imgArr = [];
   try { imgArr = Array.isArray(images) ? images.filter(isSafeImageUrl) : JSON.parse(images || '[]').filter(isSafeImageUrl); } catch { imgArr = []; }
+  imgArr = imgArr.slice(0, 12); // limite ragionevole di gallery, evita payload abnormi
   const cover = imgArr.length > 0 ? imgArr[0] : '';
   const qty = Math.max(0, parseInt(quantity) || 0);
   const info = db.prepare(
@@ -195,11 +228,20 @@ app.put('/api/products/:id', requireAdmin, (req, res) => {
   const p = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
   if (!p) return res.status(404).json({ error: 'Prodotto non trovato.' });
   const { name, description, price, category, emoji, images, image, available, quantity } = req.body || {};
+  if (name !== undefined && (!name.trim() || name.trim().length > 200))
+    return res.status(400).json({ error: 'Nome non valido (1-200 caratteri).' });
+  if (description !== undefined && description !== null && description.length > 2000)
+    return res.status(400).json({ error: 'Descrizione troppo lunga (max 2000 caratteri).' });
   const cents = price === undefined ? p.price : Math.round(Number(price));
   if (!Number.isFinite(cents) || cents < 0) return res.status(400).json({ error: 'Prezzo non valido.' });
+  if (category !== undefined && category !== null && !ALLOWED_CATEGORIES.includes(category))
+    return res.status(400).json({ error: 'Categoria non valida.' });
+  if (emoji !== undefined && emoji !== null && emoji !== '' && !isSafeEmoji(emoji))
+    return res.status(400).json({ error: 'Emoji non valida.' });
   let imgArr = [];
   if (images !== undefined) {
     try { imgArr = Array.isArray(images) ? images.filter(isSafeImageUrl) : JSON.parse(images).filter(isSafeImageUrl); } catch { imgArr = []; }
+    imgArr = imgArr.slice(0, 12);
   } else {
     try { imgArr = JSON.parse(p.images || '[]'); } catch { imgArr = []; }
   }
@@ -227,16 +269,28 @@ app.post('/api/orders', requireAuth, (req, res) => {
 
   if (!Array.isArray(items) || items.length === 0)
     return res.status(400).json({ error: 'Il carrello è vuoto.' });
+  // Un carrello con centinaia di righe non ha senso per un ordine reale: oltre a essere
+  // inutile, forzerebbe altrettante query dentro la transazione qui sotto.
+  if (items.length > 50)
+    return res.status(400).json({ error: 'Troppi articoli in un solo ordine (max 50 righe).' });
   if (!['contanti', 'carta'].includes(payment_method))
     return res.status(400).json({ error: 'Metodo di pagamento non valido.' });
   if (!['consegna', 'asporto', 'tavolo'].includes(order_type))
     return res.status(400).json({ error: 'Tipo di ordine non valido.' });
   if (!delivery || !delivery.name || !delivery.name.trim())
     return res.status(400).json({ error: 'Inserisci il tuo nome.' });
+  if (delivery.name.trim().length > 200)
+    return res.status(400).json({ error: 'Nome troppo lungo.' });
   if (order_type === 'consegna' && (!delivery.address || !delivery.phone))
     return res.status(400).json({ error: 'Per la consegna servono indirizzo e telefono.' });
+  if (delivery.address && delivery.address.length > 300)
+    return res.status(400).json({ error: 'Indirizzo troppo lungo.' });
+  if (delivery.phone && delivery.phone.length > 40)
+    return res.status(400).json({ error: 'Numero di telefono troppo lungo.' });
   if (order_type === 'asporto' && !delivery.phone)
     return res.status(400).json({ error: 'Per l\'asporto serve un numero di telefono.' });
+  if (notes && notes.length > 1000)
+    return res.status(400).json({ error: 'Note troppo lunghe (max 1000 caratteri).' });
   const partySize = parseInt(delivery && delivery.party_size, 10);
   if (order_type === 'tavolo' && (!Number.isFinite(partySize) || partySize < 1))
     return res.status(400).json({ error: 'Indica per quante persone è il tavolo.' });
@@ -388,7 +442,7 @@ if (require.main === module) {
     console.log(`\nForno Brace · Pane lievitato come una volta`);
     console.log(`    Sito:    http://localhost:${config.PORT}`);
     console.log(`    Admin:   http://localhost:${config.PORT}/admin`);
-    console.log(`    Admin:   ${config.ADMIN_EMAIL} / ${config.ADMIN_PASSWORD}`);
+    console.log(`    Admin email: ${config.ADMIN_EMAIL} (password non stampata in log — vedi .admin-password.local)`);
     console.log(`    Demo:    ${config.DEMO_EMAIL} / ${config.DEMO_PASSWORD}\n`);
   });
 }
